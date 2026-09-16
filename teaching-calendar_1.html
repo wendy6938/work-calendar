@@ -1,0 +1,2361 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>教學組工作行事曆</title>
+<style>
+:root{--line:#d9dee5;--text:#1f2937;--muted:#6b7280;--panel:#fff;--bg:#f6f7f9}
+*{box-sizing:border-box} body{margin:0;font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;background:var(--bg);color:var(--text)}
+.wrap{max-width:1500px;margin:auto;padding:18px}.toolbar,.panel{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.toolbar h1{font-size:22px;margin:0 auto 0 0}
+button,input,select,textarea{font:inherit;border:1px solid #cfd6df;border-radius:9px;padding:8px 10px;background:#fff}
+button{cursor:pointer}.primary{background:#243d5a;color:white;border-color:#243d5a}
+.calendarScroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:14px}
+.calendar{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.calendarWeekdayHeader{display:grid;grid-template-columns:repeat(7,1fr);position:sticky;top:0;z-index:5;background:#f1f4f7}
+.calendarWeekGrid{display:grid;grid-template-columns:repeat(7,1fr)}
+.calendarWeek{border-top:1px solid var(--line)}
+.calendarWeekHead{width:100%;display:flex;justify-content:space-between;align-items:center;border:0;border-radius:0;background:#f8f9fb;padding:9px 14px;font-weight:700;cursor:pointer;color:var(--text)}
+.calendarWeek.current-week .calendarWeekHead{background:#dcebff;border-left:4px solid #5B8FD9;padding-left:10px}
+@media(max-width:900px){
+  .calendarWeekdayHeader{grid-template-columns:repeat(7,112px);min-width:784px}
+  .calendarWeekGrid{grid-template-columns:repeat(7,112px);min-width:784px}
+  .calendar{border-radius:0}
+  .calendarScroll{border:1px solid var(--line)}
+}
+.dow{padding:10px;text-align:center;font-weight:700;background:#f1f4f7;border-right:1px solid var(--line)}
+.day{min-height:170px;padding:7px;border-top:1px solid var(--line);border-right:1px solid var(--line);background:#fff}
+.day.muted{background:#fafafa;color:#aaa}.num{font-weight:700;font-size:13px;margin-bottom:5px}
+.event{display:block;width:100%;text-align:left;margin:5px 0;padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,.12);border-left-width:6px;font-size:12px}
+.event .title{font-weight:700}.event .meta{margin-top:4px;color:#4b5563}.event.status-doing{outline:3px solid #e39a1f;outline-offset:-3px}.event.status-done{opacity:.58}.event.status-done .title{text-decoration:line-through}.event.status-blocked{outline:3px solid #c94f4f;outline-offset:-3px}
+.event.tentative,.row.tentative,.result.tentative{border-style:dashed!important}
+.row.past-row{background:#f5f6f7!important;opacity:.65}
+.row.past-row b,.row.past-row .small{text-decoration:line-through}
+.cat-meeting{background:#DCEBFF!important;border-left-color:#5B8FD9!important}
+.cat-deadline{background:#FFF0B8!important;border-left-color:#D0A327!important}
+.cat-exam{background:#E9DDFB!important;border-left-color:#8A68C3!important}
+.cat-invite{background:#DDF3E4!important;border-left-color:#5A9E70!important}
+.cat-boost{background:#FFE3C2!important;border-left-color:#D9872D!important}
+.cat-competition{background:#F9DCE8!important;border-left-color:#C86D91!important}
+.cat-training{background:#DDF3F1!important;border-left-color:#55A6A0!important}
+.cat-holiday{background:#FFE0E3!important;border-left-color:#CF5360!important;color:#8B2932!important}
+.cat-student{background:#E5EAFB!important;border-left-color:#7185C3!important}
+.cat-school{background:#EDE5F5!important;border-left-color:#8D73AD!important}
+.cat-other{background:#ECEFF2!important;border-left-color:#8F98A1!important}
+.statuschip{display:inline-block;margin-top:5px;padding:2px 7px;border-radius:999px;font-size:11px;font-weight:700;background:#fff8}
+.statuschip.doing{color:#995f00}.statuschip.done{color:#39764b}.statuschip.blocked{color:#9d3939}
+.statuschip.fyi{color:#5a6b7a;background:#e8edf1}
+.section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.section-head h2{font-size:18px;margin:0 0 10px}
+.list{display:grid;gap:7px}.row{display:grid;grid-template-columns:100px 110px 1fr 120px;gap:12px;align-items:center;border:1px solid var(--line);border-left-width:6px;border-radius:10px;padding:10px;cursor:pointer}
+.small{font-size:12px;color:var(--muted)}.badge{padding:2px 7px;border-radius:999px;border:1px solid #bbb;background:#fff8;font-size:11px}
+.addRow{display:flex;gap:8px;flex-wrap:wrap}
+.addRow input{flex:1;min-width:140px}
+.filterbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.filterbar input{min-width:300px}
+.results{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-top:10px}.result{border:1px solid var(--line);border-radius:10px;padding:12px;background:#fff;display:flex;flex-direction:column;justify-content:space-between;gap:8px;min-height:130px}
+.modalback{display:none;position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:999;align-items:center;justify-content:center;padding:18px}
+.modalback.open{display:flex}.modal{width:min(720px,100%);max-height:92vh;overflow:auto;background:white;border-radius:16px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{margin:10px 0}.field label{display:block;font-weight:700;font-size:13px;margin-bottom:5px}.field input,.field select,.field textarea{width:100%}
+.actions{display:flex;justify-content:space-between;gap:10px;margin-top:16px}.right{display:flex;gap:8px}.danger{color:#b42318;border-color:#e2a6a0}
+.subtask{display:flex;align-items:center;gap:8px;border:1px solid #e1e5ea;border-radius:8px;padding:8px}.subtask input[type=checkbox]{width:auto}.subtask .grow{flex:1}.subtask button{padding:3px 7px}
+.legend{display:flex;gap:8px;flex-wrap:wrap;font-size:12px}.legend span{padding:3px 8px;border-radius:999px;border:1px solid #ccc}
+.legend span[data-filter],.legend span[data-status]{cursor:pointer;transition:transform .1s,box-shadow .1s}
+.legend span[data-filter]:hover,.legend span[data-status]:hover{transform:translateY(-1px);box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.legend span[data-filter].active,.legend span[data-status].active{outline:2px solid #243d5a;outline-offset:1px}
+@media(max-width:900px){.day{min-height:130px}.row{grid-template-columns:80px 1fr}.row>div:nth-child(2){display:none}
+.row.trackerRow{grid-template-columns:1fr auto;grid-template-rows:auto auto auto;row-gap:4px}
+.row.trackerRow>div:nth-child(1){grid-column:1;grid-row:1}
+.row.trackerRow>div:nth-child(2){display:block!important;grid-column:2;grid-row:1}
+.row.trackerRow>div:nth-child(3){grid-column:1/3;grid-row:2}
+.row.trackerRow>div:nth-child(4){grid-column:1/3;grid-row:3}
+}
+
+/* ===== 狀態標記：分類底色不變，狀態用小標籤與外框 ===== */
+.status-legend-chip{
+  display:inline-block;
+  padding:4px 9px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:700;
+  border:1px solid #cfd6df;
+  background:#fff;
+}
+.status-legend-chip.todo{background:#f3f4f6;color:#4b5563;border-color:#c7ccd2}
+.status-legend-chip.doing{background:#fff1cf;color:#8d5b08;border-color:#e39a1f}
+.status-legend-chip.done{background:#e3f3e7;color:#39764b;border-color:#7fb88f}
+.status-legend-chip.blocked{background:#fde4e4;color:#9d3939;border-color:#c94f4f}
+.status-legend-chip.fyi{background:#e8edf1;color:#5a6b7a;border-color:#c7ccd2}
+
+.event .statuschip.todo{background:#f3f4f6;color:#4b5563;border:1px solid #c7ccd2}
+.event .statuschip.doing{background:#fff1cf;color:#8d5b08;border:1px solid #e39a1f}
+.event .statuschip.done{background:#e3f3e7;color:#39764b;border:1px solid #7fb88f}
+.event .statuschip.blocked{background:#fde4e4;color:#9d3939;border:1px solid #c94f4f}
+.event .statuschip.fyi{background:#e8edf1;color:#5a6b7a;border:1px solid #c7ccd2}
+
+
+/* ===== 本版整合調整 ===== */
+.toolbar{padding:18px 20px!important;min-height:76px}
+.toolbar h1{font-size:25px!important}
+#ymLabel{font-size:24px!important;min-width:165px;text-align:center}
+#calendarTitle:hover{background:#f1f4f7;border-radius:6px;padding:2px 6px;margin:-2px -6px}
+#calendarTitle:focus{background:#fff;box-shadow:0 0 0 2px #91aecf;border-radius:6px;padding:2px 6px;margin:-2px -6px}
+#prev,#next,#newTask{font-size:16px!important;padding:11px 17px!important;font-weight:700}
+
+.focusPanels{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:900px){.focusPanels{grid-template-columns:1fr}}
+
+/* 核心會議＝主辦，深藍；一般會議＝出席，淺藍 */
+.cat-coremeeting{background:#B8D2F4!important;border-left-color:#24558F!important}
+.cat-meeting{background:#E8F1FB!important;border-left-color:#91AECF!important}
+
+/* 競賽改珊瑚橘，避開段考紫色與假日紅色 */
+.cat-competition{background:#FFE1D0!important;border-left-color:#DD7748!important}
+.cat-exam{background:#E9DDFB!important;border-left-color:#8A68C3!important}
+.cat-holiday{background:#FFD7DC!important;border-left-color:#C94856!important;color:#842832!important}
+
+.fridayMonthsCol{display:flex;flex-direction:column;gap:14px}
+.friday-month{border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;align-items:stretch}
+.friday-month-head{flex:none;width:130px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:4px;border:0;border-right:1px solid var(--line);border-radius:0;background:#f5f7fa;padding:12px 14px;font-weight:800;text-align:left}
+.friday-month-body{display:flex;gap:10px;padding:10px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.friday-month.collapsed .friday-month-body{display:none}
+.friday-month.collapsed .friday-month-head{border-right:0}
+.fridayCardBox{height:190px;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;flex:none;width:250px}
+.fridayCardBox .small{display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+.fridayCardBox button{flex:none}
+
+
+/* 學習扶助：獨立顏色，避免與其他業務混淆 */
+.cat-support{background:#E1F2D7!important;border-left-color:#6E9F4F!important}
+
+/* ===== 每日待辦 ===== */
+.todoRow{display:flex;align-items:center;gap:8px;border:1px solid #e1e5ea;border-radius:8px;padding:8px 10px;margin-bottom:6px}
+.todoRow input[type=checkbox]{width:auto}
+.todoRow .grow{flex:1}
+.todoRow.done .grow{text-decoration:line-through;color:#9aa1a9}
+.prioSelect{cursor:pointer;}
+.todoAddRow{display:flex;gap:8px;margin-top:8px}
+.todoAddRow input{flex:1}
+.todoDateRow{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+.todoDateRow input[type=date]{flex:none}
+.todoDateRow button{padding:6px 10px;font-size:12px}
+.todoDateGroup{margin-bottom:10px}
+.todoDateGroup:last-child{margin-bottom:0}
+.todoDateLabel{font-weight:700;font-size:13px;color:#243d5a;margin:4px 0 6px}
+
+</style>
+</head>
+<body>
+<div id="loadingOverlay" style="position:fixed;inset:0;background:#f6f7f9;z-index:3000;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;">
+  <div style="font-size:18px;font-weight:700;color:#243d5a;">☁ 正在從雲端載入資料…</div>
+  <div class="small">第一次開啟或網路較慢時可能需要幾秒鐘</div>
+</div>
+<div class="wrap">
+  <div class="toolbar">
+    <h1 id="calendarTitle" contenteditable="true" spellcheck="false" title="點一下可以直接修改標題" style="cursor:text;outline:none;">教學組工作行事曆</h1>
+    <button id="prev">◀ 上月</button><strong id="ymLabel"></strong><button id="next">下月 ▶</button>
+    <button class="primary" id="newTask">＋新增事項</button>
+    <button id="refreshCloud" title="從雲端重新載入最新資料">🔄 重新整理</button>
+    <span id="syncStatus" class="small" style="font-weight:700;"></span>
+  </div>
+
+  <div class="panel">
+    <div class="legend">
+      <span class="cat-coremeeting" data-filter="核心會議">核心會議｜主辦</span><span class="cat-meeting" data-filter="會議">一般會議｜出席</span><span class="cat-deadline" data-filter="截止">截止</span><span class="cat-exam" data-filter="考試">考試</span>
+      <span class="cat-invite" data-filter="會考分析">會考分析講座</span><span class="cat-boost" data-filter="精進班">精進班講座</span><span class="cat-competition" data-filter="競賽">競賽</span>
+      <span class="cat-training" data-filter="研習">研習</span><span class="cat-support" data-filter="學習扶助">學習扶助</span><span class="cat-holiday" data-filter="假">假日</span>
+    </div>
+    <div class="legend status-legend" style="margin-top:9px;">
+      <span class="status-legend-chip todo" data-status="todo">未完成</span>
+      <span class="status-legend-chip doing" data-status="doing">處理中</span>
+      <span class="status-legend-chip done" data-status="done">已完成</span>
+      <span class="status-legend-chip blocked" data-status="blocked">不可安排</span>
+      <span class="status-legend-chip fyi" data-status="fyi">僅提醒</span>
+      <span class="small" style="align-self:center;">※ 假日、段考／模擬考不顯示進度｜點上方標籤可直接篩選</span>
+    </div>
+  </div>
+
+  <div class="calendarScroll"><div class="calendar" id="calendar"></div></div>
+
+  <div class="focusPanels">
+    <section class="panel" style="margin-top:14px">
+      <div class="section-head"><h2>📌 本日重點</h2><span class="small" id="todayLabel"></span></div>
+      <div class="list" id="todayList"></div>
+    </section>
+    <section class="panel">
+      <div class="section-head"><h2>📅 本週重點</h2><span class="small">週一～週日</span></div>
+      <div class="list" id="weekList"></div>
+    </section>
+  </div>
+
+  <div class="panel" style="margin-top:14px">
+    <div class="section-head"><h2>📝 每日待辦</h2><span class="small" id="todoViewLabel"></span><button type="button" id="dedupeTodoBtn">🧹 清除重複</button><button type="button" id="todoToggleView">顯示全部日期</button><button type="button" id="toggleDailyTodoPanel">▼ 收合</button></div>
+    <div id="dailyTodoPanelBody">
+    <div id="dailyTodoList"></div>
+    <div class="todoDateRow">
+      <input type="date" id="newTodoDate">
+      <button type="button" id="todoToday">今天</button>
+      <button type="button" id="todoTomorrow">明天</button>
+      <label style="display:flex;align-items:center;gap:4px;font-size:13px;"><input type="checkbox" id="newTodoImportant"> 重要</label>
+      <label style="display:flex;align-items:center;gap:4px;font-size:13px;"><input type="checkbox" id="newTodoUrgent"> 緊急</label>
+    </div>
+    <div class="todoAddRow">
+      <input id="newTodoText" placeholder="輸入待辦事項後按 Enter 或新增">
+      <button id="addTodoBtn">＋新增</button>
+    </div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:14px">
+    <div class="section-head">
+      <h2>📥 收件／回條追蹤</h2>
+      <div style="display:flex;gap:8px;">
+        <button id="manageClassesBtn">⚙ 班級清單設定</button>
+        <button class="primary" id="newCollectionBtn">＋新增追蹤項目</button>
+        <button type="button" id="toggleCollectionsPanel">▼ 收合</button>
+      </div>
+    </div>
+    <div id="collectionsPanelBody">
+    <div class="small">新增追蹤項目後勾選已繳交的班級，未勾選的會自動列在「尚未繳交」。第一次使用請先按「⚙ 班級清單設定」建立班級清單。</div>
+    <div class="list" id="collectionList" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:14px">
+    <div class="section-head"><h2>🎤 精進班講座追蹤</h2><span class="small" id="boostSummary"></span><button type="button" id="toggleBoostPanel">▼ 收合</button></div>
+    <div id="boostPanelBody">
+    <div class="small">固定追蹤國文、英文、數學、生物、理化、歷史、地理、公民 8 科，點任一科可編輯邀約狀態、講師與事前工作進度。</div>
+    <div class="list" id="boostList" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:14px">
+    <div class="section-head"><h2>👨‍🏫 教師增能研習講師邀約</h2><span class="small" id="trainingSummary"></span><button type="button" id="toggleTrainingPanel">▼ 收合</button></div>
+    <div id="trainingPanelBody">
+    <div class="small">固定追蹤國文、英文、數學、自然、歷史、公民 6 科，點任一科可編輯邀約狀態、講師與事前工作進度。</div>
+    <div class="list" id="trainingList" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:14px">
+    <div class="section-head"><h2>📋 國九三類講座總覽</h2><button type="button" id="toggleLectureOverviewPanel">▼ 收合</button></div>
+    <div id="lectureOverviewPanelBody">
+    <div class="small">整合會考分析講座、精進班講座、教師增能研習的時程（依日期排序），方便跟領召或九年級班導溝通。</div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-top:10px;">
+      <label class="small" style="display:flex;align-items:center;gap:6px;">月份：<select id="overviewMonthFilter"><option value="">全部</option></select></label>
+      <label class="small" style="display:flex;align-items:center;gap:6px;">科目：<select id="overviewSubjectFilter"><option value="">全部</option></select></label>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <label class="small" style="display:flex;align-items:center;gap:4px;"><input type="checkbox" class="overviewTypeFilter" value="會考分析講座" checked> 會考分析</label>
+        <label class="small" style="display:flex;align-items:center;gap:4px;"><input type="checkbox" class="overviewTypeFilter" value="精進班講座" checked> 精進班</label>
+        <label class="small" style="display:flex;align-items:center;gap:4px;"><input type="checkbox" class="overviewTypeFilter" value="教師增能研習" checked> 教師增能</label>
+      </div>
+    </div>
+    <div class="list" id="lectureOverviewList" style="margin-top:10px"></div>
+
+    <div style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px;">
+      <div style="font-weight:700;margin-bottom:8px;">✉️ 產生訊息文字</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button type="button" id="msgRangeWeek">未來7天</button>
+        <button type="button" id="msgRange2Week">未來14天</button>
+        <button type="button" id="msgRangeMonth">本月</button>
+        <button type="button" id="msgRangeAll">全部</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;">
+        <input type="date" id="msgRangeStart"><span class="small">～</span><input type="date" id="msgRangeEnd">
+        <button type="button" class="primary" id="genMessageBtn">產生文字</button>
+      </div>
+      <div style="margin-top:8px;">
+        <label class="small">稱呼（例如：各位導師、王老師）：<input id="msgGreetingName" value="各位導師" style="width:160px;"></label>
+      </div>
+      <textarea id="msgOutput" rows="10" style="margin-top:8px;width:100%;" placeholder="按上面按鈕產生訊息文字，也可以直接在這裡手動微調文字"></textarea>
+      <button type="button" id="copyMessageBtn" style="margin-top:6px;">📋 複製文字</button>
+    </div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:14px">
+    <div class="section-head"><h2>本月工作清單</h2><span class="small">點任何事項即可編輯或刪除</span><button type="button" id="toggleMonthListPanel">▼ 收合</button></div>
+    <div id="monthListPanelBody">
+    <div class="list" id="monthList"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="section-head"><h2>🔎 查看行程類型／關鍵字</h2></div>
+    <div class="filterbar">
+      <input id="filterText" list="filterOptions" placeholder="例如：核心、語文、研習、會考" onfocus="this.select()">
+      <datalist id="filterOptions"></datalist>
+      <button id="showDates">顯示日期</button>
+      <button id="clearFilter">關閉</button>
+    </div>
+    <div class="small">可以只輸入部分文字，例如「核心」就會找到「核心會議」。</div>
+    <div class="results" id="filterResults"></div>
+  </div>
+
+  <div class="panel">
+    <div class="section-head"><h2>🎤 國九精進班講座｜週五邀約日期</h2></div>
+    <div class="small">列出本學期星期五，並依當天與當週行程判斷。若國九教育旅行／校外教學、考試、放假或已標記不可安排，會直接列為「不可安排」。已經過去、且沒有排定講座的星期五不會列出；已經排定講座的即使日期已過，仍會保留方便回顧。</div>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;"><button id="showFridays">顯示目前月份週五</button><button id="showAllFridays">展開整學期</button></div>
+    <div id="fridayResults"></div>
+  </div>
+</div>
+
+<div class="modalback" id="modalBack">
+  <div class="modal">
+    <div class="section-head"><h2 id="modalTitle">編輯事項</h2><button id="xClose">×</button></div>
+    <input type="hidden" id="taskId">
+    <div class="grid2">
+      <div class="field"><label>日期</label><input type="date" id="date"></div><div class="field"><label>結束日期（跨日才填）</label><input type="date" id="endDate"></div>
+      <div class="field" id="workdaysOnlyField" style="display:none;"><label style="display:flex;align-items:center;gap:6px;font-weight:400;"><input type="checkbox" id="workdaysOnly" style="width:auto;"> 只顯示工作日（跳過週末、國定假日，適合「發放-截止」這種期間型行程；像教育旅行、露營這種連續進行的活動請不要勾）</label></div>
+      <div class="field"><label>時間／節次</label><input id="time"></div>
+      <div class="field"><label>地點</label><input id="location" placeholder="例如：第一會議室、階梯教室"></div>
+      <div class="field"><label>類別</label><input id="category" list="categoryOptions" placeholder="可選擇或自行輸入"><datalist id="categoryOptions"></datalist></div>
+      <div class="field" id="statusField"><label>完成狀態</label><select id="status"><option value="todo">未完成</option><option value="doing">處理中</option><option value="done">已完成</option><option value="blocked">不可安排</option><option value="fyi">僅提醒／非本組業務</option></select></div>
+    </div>
+    <div class="field"><label>事項名稱</label><input id="title"></div>
+
+    <div id="inviteFields" style="display:none;background:#f3f7fb;border-radius:10px;padding:10px">
+      <div class="grid2">
+        <div class="field"><label>科目</label><input id="subject"></div>
+        <div class="field"><label>邀約狀態</label><select id="inviteStatus"><option>尚未邀約</option><option>邀約中</option><option>已確認</option><option>婉拒</option><option>暫時保留</option></select></div>
+      </div>
+      <div class="field"><label>講師</label><input id="speaker"></div>
+    </div>
+
+    <div class="field"><label>細項待辦</label><div id="subtasks" style="display:grid;gap:6px"></div></div>
+    <div class="addRow"><input id="newSubtaskText" placeholder="自行新增細項"><button id="addSubtask">＋新增細項</button><button id="addTemplate">依類型加入前置作業</button></div>
+    <div style="margin-top:8px;">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <label class="small" style="display:flex;align-items:center;gap:6px;">要保留幾天緩衝（例如老師收件常會晚交）：
+          <input type="number" id="scheduleBufferDays" value="3" min="0" max="30" style="width:60px;">天
+        </label>
+        <button type="button" id="autoScheduleBtn">🗓 自動排入每日待辦（依日期往前推算）</button>
+        <button type="button" id="rescheduleBtn">🔁 重新計算時間（修正擠在同一天的問題）</button>
+      </div>
+      <div class="small" style="margin-top:4px;">請先儲存這筆行程再使用。排程只會算「工作日」（自動跳過週末與行事曆上的國定假日）。若是「核心會議」或「會議」類的行程，套用範本的細項會依各自合理的時間點安排（例如通知單排當週星期一、LINE提醒排前一天、會後追蹤排在會議之後），其他類型或自訂細項則依「會前／會後」均分推算，且會自動避免多個項目擠在同一天。細項會跟每日待辦互相連結——打勾其中一邊，另一邊會自動同步；之後新增的細項，再按一次「自動排入」只會補上新的，不會重複加入；如果發現已連結的項目時間怪怪的（例如全部擠在今天），按「重新計算時間」即可套用最新規則。</div>
+    </div>
+    <div class="field"><label>備註</label><textarea id="note" rows="3"></textarea></div>
+
+    <div id="deleteFeedback" style="display:none;margin-top:10px;padding:8px 10px;border-radius:8px;background:#fdecec;color:#9b2c2c;font-weight:700;"></div>
+    <div class="actions">
+      <button type="button" class="danger" id="deleteBtn" onclick="deleteCurrentDirect(); return false;">刪除</button>
+      <div class="right"><button type="button" id="duplicateBtn">複製</button><button id="cancelBtn">取消</button><button class="primary" id="saveBtn">儲存</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="modalback" id="classModalBack">
+  <div class="modal">
+    <div class="section-head"><h2>班級清單設定</h2><button id="classXClose">×</button></div>
+    <div class="field"><label>班級清單（每行一個班級，或用逗號分隔）</label><textarea id="classListInput" rows="10" placeholder="例如：701&#10;702&#10;703..."></textarea></div>
+    <div class="small">建立後，之後每一筆追蹤項目都會用這份清單勾選繳交狀態；之後修改清單也會套用到既有的追蹤項目。</div>
+    <div class="actions"><div></div><div class="right"><button id="classCancelBtn">取消</button><button class="primary" id="classSaveBtn">儲存</button></div></div>
+  </div>
+</div>
+
+<div class="modalback" id="collModalBack">
+  <div class="modal">
+    <div class="section-head"><h2 id="collModalTitle">新增追蹤項目</h2><button id="collXClose">×</button></div>
+    <input type="hidden" id="collId">
+    <div class="grid2">
+      <div class="field"><label>名稱</label><input id="collTitle" placeholder="例如：暑假作業回條"></div>
+      <div class="field"><label>截止日期（選填）</label><input type="date" id="collDue"></div>
+    </div>
+    <div class="field">
+      <label>追蹤對象</label>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;">
+        <label style="font-weight:400;display:flex;align-items:center;gap:5px;"><input type="radio" name="collMode" id="collModeClass" value="class" checked> 班級</label>
+        <label style="font-weight:400;display:flex;align-items:center;gap:5px;"><input type="radio" name="collMode" id="collModeStudent" value="student"> 學生（例如比賽名單）</label>
+        <label style="font-weight:400;display:flex;align-items:center;gap:5px;"><input type="radio" name="collMode" id="collModeDomain" value="domain"> 領域</label>
+      </div>
+    </div>
+    <div id="collClassSection">
+      <div class="field"><label>勾選已繳交的班級</label><div id="collClassCheckboxes"></div></div>
+    </div>
+    <div id="collStudentSection" style="display:none;">
+      <div class="field"><label>學生名單（勾選代表已完成／已繳交）</label><div id="collStudentList" style="display:grid;gap:6px"></div></div>
+      <div class="addRow"><input id="newCollStudentText" placeholder="輸入學生姓名後按 Enter 或新增（可一次貼多位，用逗號或換行分隔）"><button id="addCollStudentBtn">＋新增</button></div>
+    </div>
+    <div id="collDomainSection" style="display:none;">
+      <div class="field"><label>勾選已完成／已繳交的領域</label><div id="collDomainCheckboxes"></div></div>
+    </div>
+    <div id="collDeleteFeedback" style="display:none;margin-top:10px;padding:8px 10px;border-radius:8px;background:#fdecec;color:#9b2c2c;font-weight:700;"></div>
+    <div class="actions">
+      <button type="button" class="danger" id="collDeleteBtn">刪除</button>
+      <div class="right"><button type="button" id="collDuplicateBtn">複製</button><button id="collCancelBtn">取消</button><button class="primary" id="collSaveBtn">儲存</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="modalback" id="boostModalBack">
+  <div class="modal">
+    <div class="section-head"><h2 id="boostModalTitle">編輯精進班講座</h2><button id="boostXClose">×</button></div>
+    <input type="hidden" id="boostSubjectId">
+    <div class="grid2">
+      <div class="field"><label>邀約狀態</label><select id="boostStatus"><option>尚未邀約</option><option>邀約中</option><option>已確認</option><option>婉拒</option><option>暫時保留</option></select></div>
+      <div class="field"><label>日期</label><input type="date" id="boostDate"></div>
+      <div class="field"><label>節次／時間</label><input id="boostPeriod" placeholder="例如：第6、7節"></div>
+      <div class="field"><label>講師</label><input id="boostSpeaker"></div>
+    </div>
+    <div class="small" id="boostOldHint" style="display:none;color:#8d5b08;"></div>
+    <div class="small">狀態設為「已確認」且有填日期時，會自動出現在日曆上。</div>
+    <div class="field"><label>備忘錄</label><textarea id="boostNote" rows="3" placeholder="例如：需不需要公文、怎麼來（自行開車／需接送）、車馬費、特殊需求等"></textarea></div>
+    <div class="field"><label>事前工作</label><div id="boostPrepList" style="display:grid;gap:6px"></div></div>
+    <div class="addRow"><input id="newBoostPrepText" placeholder="自行新增前置作業"><button id="addBoostPrep">＋新增</button></div>
+    <div class="actions"><div></div><div class="right"><button id="boostCancelBtn">取消</button><button class="primary" id="boostSaveBtn">儲存</button></div></div>
+  </div>
+</div>
+
+<div class="modalback" id="trainingModalBack">
+  <div class="modal">
+    <div class="section-head"><h2 id="trainingModalTitle">編輯教師增能研習</h2><button id="trainingXClose">×</button></div>
+    <input type="hidden" id="trainingSubjectId">
+    <div class="grid2">
+      <div class="field"><label>邀約狀態</label><select id="trainingStatus"><option>尚未邀約</option><option>邀約中</option><option>已確認</option><option>婉拒</option><option>暫時保留</option></select></div>
+      <div class="field"><label>日期</label><input type="date" id="trainingDate"></div>
+      <div class="field"><label>節次／時間</label><input id="trainingPeriod" placeholder="例如：下午"></div>
+      <div class="field"><label>講師</label><input id="trainingSpeaker"></div>
+    </div>
+    <div class="small" id="trainingOldHint" style="display:none;color:#8d5b08;"></div>
+    <div class="small">狀態設為「已確認」且有填日期時，會自動出現在日曆上。</div>
+    <div class="field"><label>備忘錄</label><textarea id="trainingNote" rows="3" placeholder="例如：需不需要公文、怎麼來（自行開車／需接送）、車馬費、特殊需求等"></textarea></div>
+    <div class="field"><label>事前工作</label><div id="trainingPrepList" style="display:grid;gap:6px"></div></div>
+    <div class="addRow"><input id="newTrainingPrepText" placeholder="自行新增前置作業"><button id="addTrainingPrep">＋新增</button></div>
+    <div class="actions"><div></div><div class="right"><button id="trainingCancelBtn">取消</button><button class="primary" id="trainingSaveBtn">儲存</button></div></div>
+  </div>
+</div>
+
+<script>
+const BASE_TASKS = [{"id": 10000, "date": "2026-08-26", "time": "10:30｜階梯教室", "category": "會議", "status": "todo", "title": "全校教職員工會議", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"id": 10001, "date": "2026-08-26", "time": "國高中教務、各領域共備、期初課發會等", "category": "既定行程", "status": "todo", "title": "全校教師共備會議", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"id": 10076, "date": "2026-09-03", "time": "9/3–9/4", "category": "學習扶助", "status": "todo", "title": "115-1 學習扶助｜發放調查表", "subject": "", "inviteStatus": "", "speaker": "", "note": "配合9/7國七校外教學、9/9–9/11國九教育旅行、9/10–9/11國八隔宿露營，調查表提前於9/3–9/4發放。", "subtasks": [{"text": "確認需調查學生與科目", "done": false}, {"text": "更新學習扶助初步學生名單", "done": false}, {"text": "製作／印製參加意願調查表", "done": false}, {"text": "9/3–9/4 發至各班", "done": false}, {"text": "通知導師協助發放與回收", "done": false}, {"text": "在調查表標示各年級回收期限", "done": false}, {"text": "建立回收追蹤表", "done": false}, {"text": "國九回收期限另依教育旅行前可行時間確認", "done": false}], "fixed": true, "endDate": "2026-09-04"}, {"id": 10002, "date": "2026-09-04", "time": "", "category": "截止", "status": "todo", "title": "暑假作業繳交及設備清點單繳交截止", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"id": 10003, "date": "2026-09-04", "time": "", "category": "截止", "status": "todo", "title": "新竹市語文競賽市賽報名截止", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"id": 10004, "date": "2026-09-07", "time": "", "category": "截止", "status": "todo", "title": "新竹市複賽地理知識大競賽報名截止", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"id": 10005, "date": "2026-09-07", "time": "9/7–9/8｜1～2冊", "category": "考試", "status": "todo", "title": "國中九年級第一次模擬考", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"id": 10037, "date": "2026-09-09", "time": "", "category": "學生活動", "status": "todo", "title": "國七校外教學", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"id": 10038, "date": "2026-09-09", "time": "09/09–09/11", "category": "學生活動", "status": "todo", "title": "國九教育旅行", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true, "endDate": "2026-09-11"}, {"id": 10077, "date": "2026-09-09", "time": "", "category": "學習扶助", "status": "todo", "title": "學習扶助調查表｜國八繳回", "subject": "", "inviteStatus": "", "speaker": "", "note": "國八9/10–9/11隔宿露營，安排於隔宿露營前繳回。", "subtasks": [{"text": "確認各班回收情形", "done": false}, {"text": "提醒未繳學生／班級", "done": false}, {"text": "彙整國八參加意願", "done": false}, {"text": "整理國八正式學生名單", "done": false}], "fixed": true}, {"id": 10041, "date": "2026-09-10", "time": "09/10–09/11", "category": "學生活動", "status": "todo", "title": "國八隔宿露營", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true, "endDate": "2026-09-11"}, {"id": 10078, "date": "2026-09-11", "time": "", "category": "學習扶助", "status": "todo", "title": "學習扶助調查表｜國七繳回", "subject": "", "inviteStatus": "", "speaker": "", "note": "國七可於9/11前完成繳回。", "subtasks": [{"text": "確認各班回收情形", "done": false}, {"text": "提醒未繳學生／班級", "done": false}, {"text": "彙整國七參加意願", "done": false}, {"text": "整理國七正式學生名單", "done": false}], "fixed": true}, {"id": 10043, "date": "2026-09-12", "time": "8:30｜博雅樓2F", "category": "校務活動", "status": "todo", "title": "家長會日", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"id": 10074, "date": "2026-09-14", "time": "", "category": "競賽", "status": "todo", "title": "發國中部語文競賽調查表", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程。", "subtasks": [{"text": "確認校內語文競賽項目與組別", "done": false}, {"text": "確認調查表內容", "done": false}, {"text": "印製／準備各班調查表", "done": false}, {"text": "發送各班調查表", "done": false}, {"text": "通知導師／學藝股長協助", "done": false}, {"text": "設定回收截止日", "done": false}, {"text": "追蹤各班回收情形", "done": false}, {"text": "彙整預計參賽學生", "done": false}], "fixed": true}, {"id": 10079, "date": "2026-09-14", "time": "", "category": "學習扶助", "status": "todo", "title": "學習扶助｜回收後整理與開班前置", "subject": "", "inviteStatus": "", "speaker": "", "note": "不是固定截止日；調查表回收較完整後再開始整理，實際填報與送經費依公文期限調整。", "subtasks": [{"text": "彙整各年級正式學生名單", "done": false}, {"text": "確認各科預計開班人數", "done": false}, {"text": "找授課老師", "done": false}, {"text": "確認授課老師可上課時段", "done": false}, {"text": "找教室／確認可使用教室", "done": false}, {"text": "安排班別、課表、授課時間與教室", "done": false}, {"text": "確認開班填報期限", "done": false}, {"text": "依公文完成開班申請填報", "done": false}, {"text": "核對系統學生、教師、班別與節數資料", "done": false}, {"text": "確認核定經費與可支用項目", "done": false}, {"text": "辦理經費請撥／送經費資料", "done": false}, {"text": "準備學生點名表與教室日誌", "done": false}, {"text": "發開課通知", "done": false}, {"text": "開課前再次核對學生、老師、教室", "done": false}], "fixed": false}, {"id": 10007, "date": "2026-09-17", "time": "第6節", "category": "國九會考分析講座", "status": "todo", "title": "國九會考分析講座－英文", "subject": "英文", "inviteStatus": "已確認", "speaker": "吳勵君主任", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"id": 10008, "date": "2026-09-19", "time": "龍山國小", "category": "競賽", "status": "todo", "title": "新竹市國語文競賽", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"id": 10009, "date": "2026-09-19", "time": "新科國中", "category": "競賽", "status": "todo", "title": "地理知識大競賽－新竹市複賽", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"id": 10010, "date": "2026-09-24", "time": "第一會議室", "category": "會議", "status": "todo", "title": "國中核心會議(1)", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"id": 10011, "date": "2026-09-24", "time": "", "category": "截止", "status": "todo", "title": "校內國中部語文競賽報名截止", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"id": 10044, "date": "2026-09-25", "time": "", "category": "國定假日", "status": "todo", "title": "中秋節｜放假", "subject": "", "inviteStatus": "", "speaker": "", "note": "國定假日／依政府辦公日曆與校定行事曆標示", "subtasks": [], "fixed": true}, {"id": 10052, "date": "2026-09-26", "time": "", "category": "國定假日", "status": "todo", "title": "放假", "subject": "", "inviteStatus": "", "speaker": "", "note": "連假期間", "subtasks": [], "fixed": true}, {"id": 10053, "date": "2026-09-27", "time": "", "category": "國定假日", "status": "todo", "title": "放假", "subject": "", "inviteStatus": "", "speaker": "", "note": "連假期間", "subtasks": [], "fixed": true}, {"id": 10045, "date": "2026-09-28", "time": "", "category": "國定假日", "status": "todo", "title": "孔子誕辰紀念日／教師節｜放假", "subject": "", "inviteStatus": "", "speaker": "", "note": "國定假日／依政府辦公日曆與校定行事曆標示", "subtasks": [], "fixed": true}, {"id": 10012, "date": "2026-09-29", "time": "", "category": "截止", "status": "todo", "title": "第一次段考命題收卷截止", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"date": "2026-10-01", "time": "12:30｜階梯教室", "category": "會議", "status": "todo", "title": "導師會議(1)暨校慶籌備會", "note": "校定行事曆畫記行程", "subtasks": [], "fixed": true, "id": 10056, "subject": "", "inviteStatus": "", "speaker": ""}, {"id": 10046, "date": "2026-10-09", "time": "", "category": "國定假日", "status": "todo", "title": "國慶日補假｜放假", "subject": "", "inviteStatus": "", "speaker": "", "note": "國定假日／依政府辦公日曆與校定行事曆標示", "subtasks": [], "fixed": true}, {"id": 10047, "date": "2026-10-10", "time": "", "category": "國定假日", "status": "todo", "title": "國慶日｜放假", "subject": "", "inviteStatus": "", "speaker": "", "note": "國定假日／依政府辦公日曆與校定行事曆標示", "subtasks": [], "fixed": true}, {"id": 10054, "date": "2026-10-11", "time": "", "category": "國定假日", "status": "todo", "title": "放假", "subject": "", "inviteStatus": "", "speaker": "", "note": "連假期間", "subtasks": [], "fixed": true}, {"id": 10013, "date": "2026-10-13", "time": "10/13–10/14", "category": "考試", "status": "todo", "title": "第一次段考", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true, "endDate": "2026-10-14"}, {"id": 10015, "date": "2026-10-19", "time": "10/19–10/23", "category": "競賽", "status": "todo", "title": "國中部語文競賽週", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"id": 10016, "date": "2026-10-19", "time": "", "category": "學習扶助", "status": "todo", "title": "國中學習扶助開課", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [{"text": "確認開課班級與學生名單", "done": false}, {"text": "確認授課老師與課表", "done": false}, {"text": "確認教室", "done": false}, {"text": "開課通知已發送", "done": false}, {"text": "確認學生出缺席紀錄方式", "done": false}], "fixed": true}, {"id": 10075, "date": "2026-10-19", "endDate": "2027-01-08", "time": "學扶開課期間", "category": "學習扶助", "status": "todo", "title": "學習扶助｜教室日誌與上課紀錄追蹤", "subject": "", "inviteStatus": "", "speaker": "", "note": "自學習扶助開課至課程結束期間持續追蹤。", "subtasks": [{"text": "準備各班教室日誌／上課紀錄表", "done": false}, {"text": "教室日誌填入班別、科目、授課教師與上課日期", "done": false}, {"text": "將教室日誌交給授課老師並說明填寫方式", "done": false}, {"text": "確認每次上課完成教室日誌／授課紀錄", "done": false}, {"text": "定期檢查教室日誌填寫是否完整", "done": false}, {"text": "追蹤缺漏的授課日期、節數或教師簽名", "done": false}, {"text": "期末收回各班教室日誌", "done": false}, {"text": "核對教室日誌、學生出缺席與實際授課節數", "done": false}, {"text": "教室日誌整理留存，供成果填報／經費核銷查核", "done": false}], "fixed": true}, {"id": 10017, "date": "2026-10-22", "time": "第6節", "category": "國九會考分析講座", "status": "todo", "title": "國九會考分析講座－國文", "subject": "國文", "inviteStatus": "已確認", "speaker": "田雅婷", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"id": 10055, "date": "2026-10-24", "time": "", "category": "國定假日", "status": "todo", "title": "放假", "subject": "", "inviteStatus": "", "speaker": "", "note": "連假期間", "subtasks": [], "fixed": true}, {"id": 10048, "date": "2026-10-25", "time": "", "category": "國定假日", "status": "todo", "title": "臺灣光復暨金門古寧頭大捷紀念日｜放假", "subject": "", "inviteStatus": "", "speaker": "", "note": "國定假日／依政府辦公日曆與校定行事曆標示", "subtasks": [], "fixed": true}, {"id": 10049, "date": "2026-10-26", "time": "", "category": "國定假日", "status": "todo", "title": "臺灣光復暨金門古寧頭大捷紀念日補假｜放假", "subject": "", "inviteStatus": "", "speaker": "", "note": "國定假日／依政府辦公日曆與校定行事曆標示", "subtasks": [], "fixed": true}, {"id": 10018, "date": "2026-10-29", "time": "第一會議室", "category": "會議", "status": "todo", "title": "國中核心會議(2)", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"id": 10019, "date": "2026-10-30", "time": "", "category": "校務", "status": "todo", "title": "校慶", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"date": "2026-11-05", "time": "12:30｜階梯教室", "category": "會議", "status": "todo", "title": "導師會議(2)", "note": "校定行事曆畫記行程", "subtasks": [], "fixed": true, "id": 10057, "subject": "", "inviteStatus": "", "speaker": ""}, {"id": 10020, "date": "2026-11-12", "time": "", "category": "截止", "status": "todo", "title": "第二次段考命題收卷截止", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"id": 10021, "date": "2026-11-19", "time": "第一會議室", "category": "會議", "status": "todo", "title": "國中核心會議(3)", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"id": 10072, "date": "2026-11-19", "time": "12:30｜階梯教室", "category": "會議", "status": "todo", "title": "全校教師會議(3)暨校園霸凌防治宣導", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程；同日另有國中核心會議(3)。", "subtasks": [], "fixed": true}, {"id": 10022, "date": "2026-11-26", "time": "11/26–11/27", "category": "考試", "status": "todo", "title": "第二次段考", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true, "endDate": "2026-11-27"}, {"id": 10061, "date": "2026-11-23", "endDate": "2026-12-31", "time": "", "category": "學習扶助", "status": "todo", "title": "學習扶助｜成長測驗開放施測期間", "subject": "", "inviteStatus": "", "speaker": "", "note": "府教學字第1150152649號；追蹤115年度參與篩選測驗之個案學生學習扶助成效，參與年級為2-9年級，開放施測期間11/23(一)至12/31(四)；本校採線上測驗。", "subtasks": [{"text": "確認參與篩選測驗之個案學生名單", "done": false}, {"text": "跟資訊老師協調借用電腦教室／資訊課時段", "done": false}, {"text": "或安排利用午休時間施測", "done": false}, {"text": "通知相關教師與學生施測時間", "done": false}, {"text": "轉知教師至科技化評量系統(https://exam.tcte.edu.tw/)下載結果報告", "done": false}, {"text": "提供任課教師規劃個別化學習扶助方案參考", "done": false}, {"text": "維護試題內容保密，避免外流或移作他用", "done": false}, {"text": "確認全部應測學生完成施測", "done": false}], "fixed": true}, {"id": 10024, "date": "2026-12-03", "time": "第6節", "category": "國九會考分析講座", "status": "todo", "title": "國九會考分析講座－數學", "subject": "數學", "inviteStatus": "已確認", "speaker": "曾椿惠", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"date": "2026-12-03", "time": "12:30｜階梯教室", "category": "會議", "status": "todo", "title": "導師會議(3)", "note": "校定行事曆畫記行程", "subtasks": [], "fixed": true, "id": 10058, "subject": "", "inviteStatus": "", "speaker": ""}, {"id": 10025, "date": "2026-12-08", "time": "12:30–13:00｜知新閣1F", "category": "競賽", "status": "todo", "title": "國中部英語拼字比賽", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"id": 10026, "date": "2026-12-17", "time": "第一會議室", "category": "會議", "status": "todo", "title": "國中核心會議(4)、學扶小組會議", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"id": 10027, "date": "2026-12-17", "time": "第6節", "category": "國九會考分析講座", "status": "todo", "title": "國九會考分析講座－社會", "subject": "社會", "inviteStatus": "已確認", "speaker": "陳欣瑤", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"id": 10069, "date": "2026-12-17", "time": "", "category": "核心會議", "status": "todo", "title": "核心會議／領召會議｜課程評鑑紀錄", "subject": "", "inviteStatus": "", "speaker": "", "note": "業務交接：12月領召會議需做成課程評鑑紀錄。", "subtasks": [{"text": "確認會議時間與地點", "done": false}, {"text": "整理議程／資料", "done": false}, {"text": "發開會通知單", "done": false}, {"text": "寄開會資料", "done": false}, {"text": "LINE提醒", "done": false}, {"text": "準備課程評鑑紀錄資料", "done": false}, {"text": "會後完成課程評鑑紀錄", "done": false}, {"text": "追蹤會議決議事項", "done": false}], "fixed": true}, {"id": 10070, "date": "2026-12-18", "time": "", "category": "行事曆", "status": "todo", "title": "安排寒假及115-2行事曆", "subject": "", "inviteStatus": "", "speaker": "", "note": "業務交接：12月安排寒假及下學期行事曆。", "subtasks": [{"text": "彙整教務處寒假業務", "done": false}, {"text": "彙整115-2重要日期", "done": false}, {"text": "確認競賽／講座／班週會可用時段", "done": false}, {"text": "回報文書組／相關單位", "done": false}], "fixed": true}, {"id": 10071, "date": "2026-12-21", "time": "", "category": "教研本", "status": "todo", "title": "教研本｜下學期前置準備", "subject": "", "inviteStatus": "", "speaker": "", "note": "業務交接：教研本須於共備日前完成；需向圖書館及輔導處取得融入資料。", "subtasks": [{"text": "確認共備日", "done": false}, {"text": "向圖書館索取晨讀資料", "done": false}, {"text": "向輔導處索取生涯與家庭融入資料", "done": false}, {"text": "更新教研本內容", "done": false}, {"text": "完成印製／準備", "done": false}], "fixed": true}, {"id": 10028, "date": "2026-12-24", "time": "14:00–15:50｜博雅樓2F", "category": "活動", "status": "todo", "title": "金香獎", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"id": 10029, "date": "2026-12-25", "time": "", "category": "國定假日", "status": "todo", "title": "行憲紀念日｜放假", "subject": "", "inviteStatus": "", "speaker": "", "note": "國定假日／依政府辦公日曆與校定行事曆標示", "subtasks": [], "fixed": true}, {"id": 10030, "date": "2026-12-31", "time": "第6節", "category": "國九會考分析講座", "status": "todo", "title": "國九會考分析講座－自然", "subject": "自然", "inviteStatus": "已確認", "speaker": "陳亭芝", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"id": 10051, "date": "2027-01-01", "time": "", "category": "國定假日", "status": "todo", "title": "開國紀念日｜放假", "subject": "", "inviteStatus": "", "speaker": "", "note": "國定假日／依政府辦公日曆與校定行事曆標示", "subtasks": [], "fixed": true}, {"id": 10031, "date": "2027-01-04", "time": "", "category": "截止", "status": "todo", "title": "第三次段考命題收卷截止", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"id": 10032, "date": "2027-01-07", "time": "第一會議室", "category": "會議", "status": "todo", "title": "期末課發會暨國中核心會議(5)", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"date": "2027-01-07", "time": "12:30｜階梯教室", "category": "會議", "status": "todo", "title": "導師會議(4)", "note": "校定行事曆畫記行程", "subtasks": [], "fixed": true, "id": 10059, "subject": "", "inviteStatus": "", "speaker": ""}, {"id": 10033, "date": "2027-01-08", "time": "", "category": "截止", "status": "todo", "title": "期末班級視聽器材清點單與使用記錄簿繳交截止", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"id": 10062, "date": "2027-01-08", "time": "", "category": "學習扶助", "status": "todo", "title": "115-1 學習扶助課程結束", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆：夜自習、輔導課及國中學習扶助課程結束。", "subtasks": [{"text": "確認各班課程已完成", "done": false}, {"text": "確認授課節數與出缺席", "done": false}, {"text": "整理成果資料", "done": false}, {"text": "準備成果填報", "done": false}, {"text": "開始經費結算", "done": false}], "fixed": true}, {"id": 10063, "date": "2027-01-11", "time": "", "category": "學習扶助", "status": "todo", "title": "115-1 學習扶助成果回報／結案", "subject": "", "inviteStatus": "", "speaker": "", "note": "業務交接：一月學扶結束後開始結案；先完成網站成果填報，再進行經費結算。", "subtasks": [{"text": "確認成果回報期限", "done": false}, {"text": "網站填報執行成果", "done": false}, {"text": "確認授課節數與學生資料", "done": false}, {"text": "整理教師鐘點費", "done": false}, {"text": "確認勞保／勞退金額", "done": false}, {"text": "確認補充保費", "done": false}, {"text": "整理行政費核銷", "done": false}, {"text": "核對經費執行情形", "done": false}, {"text": "辦理結報／繳回餘款（如有）", "done": false}], "fixed": true}, {"id": 10064, "date": "2027-01-12", "time": "", "category": "學習扶助", "status": "todo", "title": "寒假學習扶助開班準備", "subject": "", "inviteStatus": "", "speaker": "", "note": "業務交接：一月辦理寒假學扶開班；日期可依實際公文調整。", "subtasks": [{"text": "確認寒假學扶公文與期限", "done": false}, {"text": "發調查表", "done": false}, {"text": "確認學生名單", "done": false}, {"text": "找授課老師", "done": false}, {"text": "借教室", "done": false}, {"text": "完成開班申請", "done": false}, {"text": "整理課表", "done": false}, {"text": "發開課通知", "done": false}], "fixed": true}, {"id": 10034, "date": "2027-01-18", "time": "01/18–01/19", "category": "考試", "status": "todo", "title": "第三次段考", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true, "endDate": "2027-01-19"}, {"id": 10036, "date": "2027-01-20", "time": "半日", "category": "校務", "status": "todo", "title": "休業式", "subject": "", "inviteStatus": "", "speaker": "", "note": "校定行事曆既定行程", "subtasks": [], "fixed": true}, {"id": 10300, "date": "2026-09-07", "time": "", "category": "行政", "status": "todo", "title": "開放全校教師會議雲端資料填寫連結", "subject": "", "inviteStatus": "", "speaker": "", "note": "配合9/17全校教師會議，開放教師填寫雲端資料連結。", "subtasks": [], "fixed": true}, {"id": 10301, "date": "2026-09-11", "time": "12:00截止", "category": "行政", "status": "todo", "title": "提醒未繳交全校會議資料", "subject": "", "inviteStatus": "", "speaker": "", "note": "配合9/17全校教師會議。", "subtasks": [], "fixed": true}, {"id": 10302, "date": "2026-09-14", "time": "8:45-9:10", "category": "提醒", "status": "todo", "title": "防災日預演", "subject": "", "inviteStatus": "", "speaker": "", "note": "非本組業務，提醒。", "subtasks": [], "fixed": true}, {"id": 10303, "date": "2026-09-14", "time": "12:00前", "category": "行政", "status": "todo", "title": "彙整全校會議資料給麗棻", "subject": "", "inviteStatus": "", "speaker": "", "note": "配合9/17全校教師會議，交給學務處麗棻。", "subtasks": [], "fixed": true}, {"id": 10304, "date": "2026-09-17", "time": "12:30", "location": "階梯教室", "category": "會議", "status": "todo", "title": "全校教師會議", "subject": "", "inviteStatus": "", "speaker": "", "note": "", "subtasks": [], "fixed": true}, {"id": 10305, "date": "2026-09-21", "time": "", "category": "提醒", "status": "todo", "title": "國家防災日", "subject": "", "inviteStatus": "", "speaker": "", "note": "非本組業務，提醒。", "subtasks": [], "fixed": true}, {"id": 10306, "date": "2026-09-21", "time": "", "category": "行政", "status": "todo", "title": "開放導師會議雲端資料填寫連結", "subject": "", "inviteStatus": "", "speaker": "", "note": "配合10/1導師會議，開放教師填寫雲端資料連結。", "subtasks": [], "fixed": true}, {"id": 10307, "date": "2026-09-22", "time": "10:00-12:00", "category": "會議", "status": "todo", "title": "KIDMAP線上會議", "subject": "", "inviteStatus": "", "speaker": "", "note": "線上會議。", "subtasks": [], "fixed": true}, {"id": 10308, "date": "2026-09-24", "time": "12:00截止", "category": "行政", "status": "todo", "title": "提醒未繳交導師會議資料", "subject": "", "inviteStatus": "", "speaker": "", "note": "配合10/1導師會議；原截止日9/25適逢中秋節放假，提前至9/24(四)。", "subtasks": [], "fixed": true}, {"id": 10309, "date": "2026-09-29", "time": "12:00前", "category": "行政", "status": "todo", "title": "彙整導師會議資料給麗棻", "subject": "", "inviteStatus": "", "speaker": "", "note": "配合10/1導師會議；原彙整日9/28適逢教師節放假，延至9/29(二)。", "subtasks": [], "fixed": true}, {"id": 10310, "date": "2026-10-05", "time": "", "category": "行政", "status": "todo", "title": "開放全校會議雲端資料填寫連結", "subject": "", "inviteStatus": "", "speaker": "", "note": "配合10/15全校會議，開放教師填寫雲端資料連結。", "subtasks": [], "fixed": true}, {"id": 10311, "date": "2026-10-08", "time": "12:00截止", "category": "行政", "status": "todo", "title": "提醒未繳交全校會議資料", "subject": "", "inviteStatus": "", "speaker": "", "note": "配合10/15全校會議；原截止日10/9適逢國慶日補假，提前至10/8(四)。", "subtasks": [], "fixed": true}, {"id": 10312, "date": "2026-10-12", "time": "12:00前", "category": "行政", "status": "todo", "title": "彙整全校會議資料給麗棻", "subject": "", "inviteStatus": "", "speaker": "", "note": "配合10/15全校會議，交給學務處麗棻。", "subtasks": [], "fixed": true}, {"id": 10313, "date": "2026-10-15", "time": "12:30", "location": "階梯教室", "category": "會議", "status": "todo", "title": "全校會議", "subject": "", "inviteStatus": "", "speaker": "", "note": "", "subtasks": [], "fixed": true}, {"id": 10314, "date": "2026-10-29", "time": "下午", "category": "校務活動", "status": "todo", "title": "校慶預演", "subject": "", "inviteStatus": "", "speaker": "", "note": "", "subtasks": [], "fixed": true}, {"id": 10315, "date": "2026-12-31", "time": "第5節", "category": "校務", "status": "todo", "title": "學測包高中", "subject": "", "inviteStatus": "", "speaker": "", "note": "", "subtasks": [], "fixed": true}, {"id": 10320, "date": "2026-10-27", "time": "", "category": "行政", "status": "todo", "title": "開放導師會議雲端資料填寫連結", "subject": "", "inviteStatus": "", "speaker": "", "note": "配合11/5導師會議(2)，開放教師填寫雲端資料連結；原週一10/26適逢臺灣光復紀念日補假，順延至10/27(二)。", "subtasks": [], "fixed": true}, {"id": 10321, "date": "2026-10-30", "time": "12:00截止", "category": "行政", "status": "todo", "title": "提醒未繳交導師會議資料", "subject": "", "inviteStatus": "", "speaker": "", "note": "配合11/5導師會議(2)。", "subtasks": [], "fixed": true}, {"id": 10322, "date": "2026-11-02", "time": "12:00前", "category": "行政", "status": "todo", "title": "彙整導師會議資料給麗棻", "subject": "", "inviteStatus": "", "speaker": "", "note": "配合11/5導師會議(2)，交給學務處麗棻。", "subtasks": [], "fixed": true}, {"id": 10323, "date": "2026-11-09", "time": "", "category": "行政", "status": "todo", "title": "開放全校教師會議雲端資料填寫連結", "subject": "", "inviteStatus": "", "speaker": "", "note": "配合11/19全校教師會議(3)暨校園霸凌防治宣導，開放教師填寫雲端資料連結。", "subtasks": [], "fixed": true}, {"id": 10324, "date": "2026-11-13", "time": "12:00截止", "category": "行政", "status": "todo", "title": "提醒未繳交全校會議資料", "subject": "", "inviteStatus": "", "speaker": "", "note": "配合11/19全校教師會議(3)。", "subtasks": [], "fixed": true}, {"id": 10325, "date": "2026-11-16", "time": "12:00前", "category": "行政", "status": "todo", "title": "彙整全校會議資料給麗棻", "subject": "", "inviteStatus": "", "speaker": "", "note": "配合11/19全校教師會議(3)，交給學務處麗棻。", "subtasks": [], "fixed": true}, {"id": 10326, "date": "2026-11-23", "time": "", "category": "行政", "status": "todo", "title": "開放導師會議雲端資料填寫連結", "subject": "", "inviteStatus": "", "speaker": "", "note": "配合12/3導師會議(3)，開放教師填寫雲端資料連結。", "subtasks": [], "fixed": true}, {"id": 10327, "date": "2026-11-27", "time": "12:00截止", "category": "行政", "status": "todo", "title": "提醒未繳交導師會議資料", "subject": "", "inviteStatus": "", "speaker": "", "note": "配合12/3導師會議(3)。", "subtasks": [], "fixed": true}, {"id": 10328, "date": "2026-11-30", "time": "12:00前", "category": "行政", "status": "todo", "title": "彙整導師會議資料給麗棻", "subject": "", "inviteStatus": "", "speaker": "", "note": "配合12/3導師會議(3)，交給學務處麗棻。", "subtasks": [], "fixed": true}, {"id": 10329, "date": "2026-12-28", "time": "", "category": "行政", "status": "todo", "title": "開放導師會議雲端資料填寫連結", "subject": "", "inviteStatus": "", "speaker": "", "note": "配合1/7導師會議(4)，開放教師填寫雲端資料連結。", "subtasks": [], "fixed": true}, {"id": 10330, "date": "2026-12-31", "time": "12:00截止", "category": "行政", "status": "todo", "title": "提醒未繳交導師會議資料", "subject": "", "inviteStatus": "", "speaker": "", "note": "配合1/7導師會議(4)；原截止日2027/1/1適逢開國紀念日放假，提前至12/31(四)。", "subtasks": [], "fixed": true}, {"id": 10331, "date": "2027-01-04", "time": "12:00前", "category": "行政", "status": "todo", "title": "彙整導師會議資料給麗棻", "subject": "", "inviteStatus": "", "speaker": "", "note": "配合1/7導師會議(4)，交給學務處麗棻。", "subtasks": [], "fixed": true}, {"id": 10332, "date": "2026-09-14", "time": "", "category": "學習扶助", "status": "todo", "title": "學習扶助｜網路填報開班情形截止", "subject": "", "inviteStatus": "", "speaker": "", "note": "府教學字第1150142922號；115學年度第一學期開班情形，未開班者亦應上網並敘明未開班原因。填報系統：https://priori.moe.gov.tw/report115", "subtasks": [{"text": "確認本學期是否開班", "done": false}, {"text": "上網填報開班情形（或敘明未開班原因）", "done": false}], "fixed": true}, {"id": 10333, "date": "2026-09-21", "time": "", "category": "學習扶助", "status": "todo", "title": "學習扶助｜開班經費及冷氣電費概算表送件截止", "subject": "", "inviteStatus": "", "speaker": "", "note": "府教學字第1150142922號；概算表請選取申請單位名稱並確認所連動帶出之分基金編號是否正確，免備文將概算表放置學扶資料袋中逕送本府教育處。", "subtasks": [{"text": "填寫開班經費概算表", "done": false}, {"text": "填寫冷氣電費概算表", "done": false}, {"text": "確認分基金編號正確", "done": false}, {"text": "放置學扶資料袋送至教育處", "done": false}], "fixed": true}, {"id": 10334, "date": "2026-09-30", "time": "", "category": "行政", "status": "todo", "title": "公開授課實施日期線上填報截止", "subject": "", "inviteStatus": "", "speaker": "", "note": "府教課字第1150151042號；填報網址：https://reurl.cc/NO1bq5。114學年度起教育處不再統一提列敘獎，如校內有「公開授課優良教師」需自行擬定敘獎辦法。", "subtasks": [{"text": "確認本學期公開授課實施日期", "done": false}, {"text": "上網填寫公開授課資料(https://reurl.cc/NO1bq5)", "done": false}], "fixed": true}, {"id": 10335, "date": "2026-10-15", "time": "", "category": "行政", "status": "todo", "title": "公開授課彙整表送件截止（課發中心鄭茹方）", "subject": "", "inviteStatus": "", "speaker": "", "note": "府教課字第1150151042號；填妥附件公開授課彙整表，核章後送至本府教育處課發中心鄭茹方助理。", "subtasks": [{"text": "填妥公開授課彙整表", "done": false}, {"text": "核章", "done": false}, {"text": "送至教育處課發中心鄭茹方助理", "done": false}], "fixed": true}];
+const DATA_KEY='teaching_calendar_cloud_v1';
+
+let ym={y:2026,m:8}; // September 2026
+let editingId=null;
+let editingSubtasks=[];
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const keyOf=t=>`${t.date||''}||${t.title||''}`;
+function showToast(message,isError){
+  // 用畫面上的提示條取代 alert()，避免在某些瀏覽環境下 alert 被封鎖、完全沒反應
+  const bar=document.createElement('div');
+  bar.textContent=message;
+  bar.style.cssText=`position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:90vw;z-index:3000;background:${isError?'#b42318':'#243d5a'};color:#fff;padding:12px 18px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);font-weight:700;font-size:14px;text-align:center;`;
+  document.body.appendChild(bar);
+  setTimeout(()=>bar.remove(),3200);
+}
+
+let tasks=[];
+let tombstones=[];
+let dailyTodos=[];
+let calendarTitle='教學組工作行事曆';
+let templateAdditions={};
+let panelCollapsed={};
+let classList=[];
+let collections=[];
+let editingCollId=null;
+let editingCollStudents=[];
+const BOOST_SUBJECTS=['國文','英文','數學','生物','理化','歷史','地理','公民'];
+let boostTracker={};
+let editingBoostSubject=null;
+let editingBoostPrep=[];
+const TRAINING_SUBJECTS=['國文','英文','數學','自然','歷史','公民'];
+let trainingTracker={};
+let editingTrainingSubject=null;
+let editingTrainingPrep=[];
+const DOMAIN_SUBJECTS=['國文','英文','數學','自然','社會','藝術','科技','健體','綜合'];
+let dataReady=false;
+
+function setSyncStatus(text,isError){
+  const el=$('syncStatus');
+  if(!el)return;
+  el.textContent=text;
+  el.style.color=isError?'#b42318':'#39764b';
+}
+
+function mergeTasks(savedList,tombList){
+  const removed=new Set(tombList||[]);
+  const byKey=new Map();
+  BASE_TASKS.forEach(t=>{
+    const k=keyOf(t);
+    if(!removed.has(k)) byKey.set(k,{...t,fixed:true});
+  });
+  (savedList||[]).forEach(t=>{
+    const k=keyOf(t);
+    if(t.fixed && removed.has(k)) return;
+    byKey.set(k,{...t});
+  });
+  return Array.from(byKey.values());
+}
+
+async function loadFromCloud(){
+  let savedList=[],tombList=[];
+  try{
+    const res=await window.storage.get(DATA_KEY,false);
+    if(res && res.value){
+      const parsed=JSON.parse(res.value);
+      savedList=parsed.saved||[];
+      tombList=parsed.tombstones||[];
+      dailyTodos=parsed.dailyTodos||[];
+      classList=parsed.classList||[];
+      collections=parsed.collections||[];
+      boostTracker=parsed.boostTracker||{};
+      trainingTracker=parsed.trainingTracker||{};
+      calendarTitle=parsed.calendarTitle||calendarTitle;
+      templateAdditions=parsed.templateAdditions||{};
+      panelCollapsed=parsed.panelCollapsed||{};
+    }
+  }catch(e){
+    // 第一次使用，雲端還沒有資料，屬正常情況
+    savedList=[]; tombList=[]; dailyTodos=[]; classList=[]; collections=[]; boostTracker={}; trainingTracker={}; templateAdditions={};
+  }
+  tombstones=tombList;
+  // 修正舊資料：以前新增的每日待辦沒有記錄日期，補上「當初新增當天」的日期，避免每次切換日期都跑出來
+  dailyTodos.forEach(item=>{
+    if(!item.date) item.date=localISO(new Date(item.id||Date.now()));
+    // 修正舊版單一「priority」欄位，轉換為「重要／緊急」兩個維度
+    if(item.priority && item.important===undefined && item.urgent===undefined){
+      if(item.priority==='high'){ item.important=true; item.urgent=true; }
+      else{ item.important=false; item.urgent=false; }
+    }
+  });
+  // 教師增能研習｜社會拆分成歷史與公民，清掉舊的「社會」殘留資料
+  if(trainingTracker['社會']) delete trainingTracker['社會'];
+  return mergeTasks(savedList,tombList);
+}
+
+async function saveToCloud(){
+  setSyncStatus('儲存中…',false);
+  try{
+    const result=await window.storage.set(DATA_KEY,JSON.stringify({saved:tasks,tombstones,dailyTodos,classList,collections,boostTracker,trainingTracker,calendarTitle,templateAdditions,panelCollapsed}),false);
+    if(result){ setSyncStatus('☁ 已同步',false); }
+    else{ setSyncStatus('⚠ 儲存失敗，請檢查網路後重試',true); }
+  }catch(e){
+    setSyncStatus('⚠ 儲存失敗，請檢查網路後重試',true);
+  }
+}
+async function save(){ await saveToCloud(); }
+async function addTombstone(t){
+  if(!t.fixed)return;
+  const k=keyOf(t);
+  if(!tombstones.includes(k))tombstones.push(k);
+}
+function applyCalendarTitle(){
+  $('calendarTitle').textContent=calendarTitle;
+  document.title=calendarTitle;
+}
+async function saveCalendarTitle(){
+  const el=$('calendarTitle');
+  const newTitle=el.textContent.trim()||'教學組工作行事曆';
+  el.textContent=newTitle;
+  if(newTitle===calendarTitle){ document.title=calendarTitle; return; }
+  calendarTitle=newTitle;
+  document.title=calendarTitle;
+  await save();
+  showToast('標題已更新',false);
+}
+
+const COLLAPSIBLE_PANELS={
+  dailyTodo:{bodyId:'dailyTodoPanelBody',btnId:'toggleDailyTodoPanel'},
+  collections:{bodyId:'collectionsPanelBody',btnId:'toggleCollectionsPanel'},
+  boost:{bodyId:'boostPanelBody',btnId:'toggleBoostPanel'},
+  training:{bodyId:'trainingPanelBody',btnId:'toggleTrainingPanel'},
+  lectureOverview:{bodyId:'lectureOverviewPanelBody',btnId:'toggleLectureOverviewPanel'},
+  monthList:{bodyId:'monthListPanelBody',btnId:'toggleMonthListPanel'}
+};
+function applyPanelCollapse(key){
+  const cfg=COLLAPSIBLE_PANELS[key]; if(!cfg)return;
+  const collapsed=!!panelCollapsed[key];
+  $(cfg.bodyId).style.display=collapsed?'none':'';
+  $(cfg.btnId).textContent=collapsed?'▶ 展開':'▼ 收合';
+}
+function applyAllPanelCollapse(){
+  Object.keys(COLLAPSIBLE_PANELS).forEach(applyPanelCollapse);
+}
+async function togglePanel(key){
+  panelCollapsed[key]=!panelCollapsed[key];
+  applyPanelCollapse(key);
+  await save();
+}
+
+async function initApp(){
+  setSyncStatus('載入中…',false);
+  const merged=await loadFromCloud();
+  tasks=removeMoreUnneededItems(reviseLearningSupportSeptember(removeUnneededHandoverItems(migrateLearningSupportSchedule(migrateMultiDay(merged)))));
+  dataReady=true;
+  $('loadingOverlay').style.display='none';
+  applyCalendarTitle();
+  applyAllPanelCollapse();
+  await save();
+  render();
+  renderDailyTodos();
+  renderCollections();
+  renderBoostTracker();
+  renderTrainingTracker();
+  renderLectureOverview();
+}
+
+function localISO(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function taskCoversDate(t,date){return (t.date||'')<=date && date<=(t.endDate||t.date||'')}
+function isBackgroundTracking(t){
+  if(!t.endDate || t.endDate===t.date) return false;
+  const days=(new Date(t.endDate)-new Date(t.date))/(1000*60*60*24);
+  return days>14; // 跨期超過兩週視為長期背景追蹤事項，只在起始日顯示一次，避免每天重複出現
+}
+function visibleOnDate(t,date){
+  if(!taskCoversDate(t,date)) return false;
+  if(isBackgroundTracking(t) && date!==t.date) return false;
+  if(t.workdaysOnly && date!==t.date && date!==t.endDate && !isWorkingDay(date)) return false;
+  return true;
+}
+function rangeText(t){return t.endDate&&t.endDate!==t.date?`${t.date.slice(5).replace('-','/')}–${t.endDate.slice(5).replace('-','/')}`:''}
+function normalizedTitle(s){return (s||'').replace(/（第[1234567890一二三四五六七八九十]+天）/g,'').trim()}
+function migrateMultiDay(list){
+  const defs=[
+    ['國九教育旅行','國九教育旅行','2026-09-09','2026-09-11','學生活動'],
+    ['國八隔宿露營','國八隔宿露營','2026-09-10','2026-09-11','學生活動'],
+    ['第一次段考','第一次段考','2026-10-13','2026-10-14','考試'],
+    ['第二次段考','第二次段考','2026-11-26','2026-11-27','考試'],
+    ['第三次段考','第三次段考','2027-01-18','2027-01-19','考試']
+  ];
+  let out=[...list];
+  defs.forEach(([needle,title,start,end,category])=>{
+    const found=out.filter(t=>normalizedTitle(t.title).includes(needle)&&!(t.title||'').includes('命題收卷截止'));
+    if(!found.length)return;
+    found.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+    const keep=found[0];
+    const statuses=found.map(t=>t.status||'todo');
+    keep.status=statuses.includes('blocked')?'blocked':statuses.includes('doing')?'doing':statuses.includes('todo')?'todo':'done';
+    keep.title=title;keep.date=start;keep.endDate=end;keep.category=category;keep.time=`${start.slice(5).replace('-','/')}–${end.slice(5).replace('-','/')}`;
+    found.slice(1).forEach(x=>{const i=out.indexOf(x);if(i>=0)out.splice(i,1)});
+  });
+  return out;
+}
+
+
+function migrateLearningSupportSchedule(list){
+  const t=list.find(x=>x.title==='115-1 學習扶助開班準備');
+  if(t){
+    t.title='115-1 學習扶助｜調查表發放與回收';
+    t.date='2026-09-07'; t.endDate='2026-09-11'; t.time='9/7–9/11'; t.category='學習扶助';
+    t.note='依你的校定行事曆畫記：9/7–9/11 辦理學習扶助調查表發放、回收與名單整理。';
+  }
+  return list;
+}
+
+
+function removeUnneededHandoverItems(list){
+  const removeTitles=new Set(['教學組｜公文與例行業務追蹤','研習業務｜學期初設定與追蹤']);
+  return (list||[]).filter(x=>!removeTitles.has(x.title));
+}
+
+
+function reviseLearningSupportSeptember(list){
+  const removeTitles=new Set([
+    '國中奧匹校內競賽報名截止',
+    '115-1 學習扶助｜開班填報與師資教室',
+    '115-1 學習扶助｜調查表發放與回收'
+  ]);
+  return (list||[]).filter(x=>!removeTitles.has(x.title));
+}
+
+
+function removeMoreUnneededItems(list){
+ const x=new Set(['公開授課｜本學期追蹤','課後留校｜例行處理']);
+ return (list||[]).filter(t=>!x.has(t.title));
+}
+
+function isNoProgress(t){
+  const c=t.category||'', title=t.title||'';
+  return c==='國定假日'||c==='假日'||title.includes('放假')||c==='考試'||/段考|模擬考/.test(title);
+}
+function statusGroupRank(t){
+  if(isNoProgress(t))return 5; // 假日、段考等不顯示狀態的排最後
+  if(t.status==='fyi')return 4; // 僅提醒／非本組業務，排在正常狀態之後
+  const order={blocked:0,doing:1,todo:2,done:3};
+  const r=order[t.status||'todo'];
+  return r===undefined?2:r;
+}
+function catClass(t){
+  const c=t.category||'', title=t.title||'';
+  if(c==='國定假日'||c==='假日'||title.includes('放假'))return'cat-holiday';
+  if(c==='考試'||/段考|模擬考/.test(title))return'cat-exam';
+  if(c==='核心會議'||title.includes('核心會議'))return'cat-coremeeting';
+  if(c==='會議'||title.includes('導師會議')||title.includes('教職員工會議')||title.includes('會議'))return'cat-meeting';
+  if(c.includes('精進班')||c.includes('學生會考增能')||title.includes('精進班'))return'cat-boost';
+  if(c.includes('會考分析')||c.includes('講師邀約')||/會考.*分析講座|會考.*講座/.test(title))return'cat-invite';
+  if(c==='競賽'||title.includes('競賽')||title.includes('比賽'))return'cat-competition';
+  if(c==='學習扶助'||title.includes('學習扶助')||title.includes('學扶'))return'cat-support';
+  if(c.includes('研習')||title.includes('研習'))return'cat-training';
+  if(c==='截止'||title.includes('截止'))return'cat-deadline';
+  if(c==='學生活動')return'cat-student';
+  if(c==='校務活動')return'cat-school';
+  return'cat-other';
+}
+function statusClass(t){return isNoProgress(t)?'':`status-${t.status||'todo'}`}
+function statusChip(t){
+  if(isNoProgress(t))return'';
+  if(t.status==='fyi')return'<span class="statuschip fyi">🔔 僅提醒</span>';
+  if(t.status==='doing')return'<span class="statuschip doing">處理中</span>';
+  if(t.status==='done')return'<span class="statuschip done">✓ 已完成</span>';
+  if(t.status==='blocked')return'<span class="statuschip blocked">不可安排</span>';
+  return'<span class="statuschip todo">未完成</span>';
+}
+function dow(y,m,d){return new Date(y,m,d).getDay()}
+function iso(y,m,d){return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`}
+
+function shiftMonth(y,m,delta){
+  let mm=m+delta, yy=y;
+  while(mm<0){mm+=12;yy--;}
+  while(mm>11){mm-=12;yy++;}
+  return [yy,mm];
+}
+function buildDayCell(date,all,muted){
+  const items=all.filter(t=>visibleOnDate(t,date)).sort((a,b)=>(statusGroupRank(a)-statusGroupRank(b))||(a.time||'').localeCompare(b.time||''));
+  const cell=document.createElement('div'); cell.className='day'+(muted?' muted':''); cell.dataset.date=date;
+  const dayNum=Number(date.slice(8,10));
+  let h=`<div class="num">${dayNum}</div>`;
+  items.forEach(t=>{
+    const done=(t.subtasks||[]).filter(s=>s.done).length,total=(t.subtasks||[]).length;
+    h+=`<button class="event ${catClass(t)} ${statusClass(t)} ${t.tentative?'tentative':''}" data-id="${t.id}">
+      <div class="title">${esc(t.title)}</div>
+      <div class="meta">${esc(t.time||'')}${t.location?` ｜📍${esc(t.location)}`:''}${t.speaker?`<br>講師｜${esc(t.speaker)}`:''}${(!isNoProgress(t)&&total)?`<br>待辦 ${done}/${total}`:''}</div>
+      ${statusChip(t)}
+    </button>`;
+  });
+  cell.innerHTML=h;
+  cell.addEventListener('dblclick',()=>openNew(date));
+  return cell;
+}
+let weekCollapseState={};
+function render(){
+  $('ymLabel').textContent=`${ym.y} 年 ${ym.m+1} 月`;
+  const cal=$('calendar'); cal.innerHTML='';
+  const all=allCalendarItems();
+  const first=new Date(ym.y,ym.m,1), days=new Date(ym.y,ym.m+1,0).getDate(), start=first.getDay();
+
+  const [py,pm]=shiftMonth(ym.y,ym.m,-1);
+  const prevMonthDays=new Date(py,pm+1,0).getDate();
+  const [ny,nm]=shiftMonth(ym.y,ym.m,1);
+
+  // 組出這個月需要顯示的完整週次（含補上的上個月／下個月灰底日期）
+  const cells=[];
+  for(let i=0;i<start;i++){
+    const dayNum=prevMonthDays-start+1+i;
+    cells.push({date:iso(py,pm,dayNum),muted:true});
+  }
+  for(let d=1;d<=days;d++){ cells.push({date:iso(ym.y,ym.m,d),muted:false}); }
+  const totalCells=start+days;
+  const remainder=totalCells%7;
+  if(remainder!==0){
+    const trailing=7-remainder;
+    for(let i=1;i<=trailing;i++){ cells.push({date:iso(ny,nm,i),muted:true}); }
+  }
+  const weeks=[];
+  for(let i=0;i<cells.length;i+=7){ weeks.push(cells.slice(i,i+7)); }
+
+  const todayStr=localISO(new Date());
+
+  // 固定顯示在最上面的星期標題（滑動時會保持在畫面上方）
+  const headerRow=document.createElement('div');
+  headerRow.className='calendarWeekdayHeader';
+  ['日','一','二','三','四','五','六'].forEach(x=>{
+    const d=document.createElement('div'); d.className='dow'; d.textContent=x; headerRow.appendChild(d);
+  });
+  cal.appendChild(headerRow);
+
+  weeks.forEach(weekCells=>{
+    const weekStart=weekCells[0].date, weekEnd=weekCells[6].date;
+    const containsToday=weekCells.some(c=>c.date===todayStr);
+    const weekKey=weekStart;
+    if(weekCollapseState[weekKey]===undefined) weekCollapseState[weekKey]=false;
+
+    const weekWrap=document.createElement('div');
+    weekWrap.className='calendarWeek'+(containsToday?' current-week':'');
+
+    const startLabel=`${Number(weekStart.slice(5,7))}/${Number(weekStart.slice(8,10))}`;
+    const endLabel=`${Number(weekEnd.slice(5,7))}/${Number(weekEnd.slice(8,10))}`;
+    const headBtn=document.createElement('button');
+    headBtn.type='button';
+    headBtn.className='calendarWeekHead';
+    headBtn.innerHTML=`<span>${startLabel} ～ ${endLabel}${containsToday?'（本週）':''}</span><span>${weekCollapseState[weekKey]?'▶':'▼'}</span>`;
+
+    function buildGrid(){
+      const grid=document.createElement('div');
+      grid.className='calendarWeekGrid';
+      weekCells.forEach(c=>grid.appendChild(buildDayCell(c.date,all,c.muted)));
+      grid.querySelectorAll('.event').forEach(el=>el.addEventListener('click',e=>{e.stopPropagation();openItem(el.dataset.id)}));
+      return grid;
+    }
+
+    headBtn.addEventListener('click',()=>{
+      weekCollapseState[weekKey]=!weekCollapseState[weekKey];
+      const collapsed=weekCollapseState[weekKey];
+      const existing=weekWrap.querySelector('.calendarWeekGrid');
+      if(collapsed){
+        if(existing)existing.remove();
+      }else if(!existing){
+        weekWrap.appendChild(buildGrid());
+      }
+      headBtn.lastElementChild.textContent=collapsed?'▶':'▼';
+    });
+
+    weekWrap.appendChild(headBtn);
+    if(!weekCollapseState[weekKey]) weekWrap.appendChild(buildGrid());
+    cal.appendChild(weekWrap);
+  });
+
+  renderMonthList(); renderFocus(); refreshOptions();
+}
+
+function focusRow(t,isPast){
+  const dateText=rangeText(t)||t.date.slice(5).replace('-','/');
+  return `<div class="row ${catClass(t)} ${statusClass(t)} ${t.tentative?'tentative':''} ${isPast?'past-row':''}" data-id="${t.id}">
+    <div><b>${dateText}</b></div>
+    <div><span class="badge">${esc(t.category||'')}</span></div>
+    <div><b>${esc(t.title)}</b><div class="small">${t.speaker?`講師｜${esc(t.speaker)} `:''}${esc(t.time||'')}${t.location?` ｜📍${esc(t.location)}`:''}</div></div>
+    <div>${isNoProgress(t)?'':statusChip(t)}</div>
+  </div>`;
+}
+function renderFocus(){
+  const all=allCalendarItems();
+  const now=new Date(), today=localISO(now);
+  $('todayLabel').textContent=today;
+  const todayTasks=all.filter(t=>visibleOnDate(t,today)).sort((a,b)=>(statusGroupRank(a)-statusGroupRank(b))||(a.time||'').localeCompare(b.time||''));
+  $('todayList').innerHTML=todayTasks.length?todayTasks.map(t=>focusRow(t,false)).join(''):'<div class="small">今天目前沒有既定事項。</div>';
+
+  const day=now.getDay(), mon=new Date(now);mon.setDate(now.getDate()-((day+6)%7));
+  const sun=new Date(mon);sun.setDate(mon.getDate()+6);
+  const a=localISO(mon), b=localISO(sun);
+  const weekTasksRaw=all.filter(t=>{
+    if(isBackgroundTracking(t)) return t.date>=a && t.date<=b; // 長期追蹤事項只在起始那一週出現
+    return (t.date||'')<=b&&(t.endDate||t.date||'')>=a;
+  });
+  // 已經整個結束（結束日早於今天）的排到最下面、用灰底劃掉；還在進行或未來的維持原本時間排序
+  const upcoming=weekTasksRaw.filter(t=>(t.endDate||t.date||'')>=today).sort((x,y)=>x.date.localeCompare(y.date));
+  const past=weekTasksRaw.filter(t=>(t.endDate||t.date||'')<today).sort((x,y)=>x.date.localeCompare(y.date));
+  const weekTasks=[...upcoming.map(t=>({t,isPast:false})),...past.map(t=>({t,isPast:true}))];
+  $('weekList').innerHTML=weekTasks.length?weekTasks.map(({t,isPast})=>focusRow(t,isPast)).join(''):'<div class="small">本週目前沒有既定事項。</div>';
+  document.querySelectorAll('#todayList .row,#weekList .row').forEach(el=>el.addEventListener('click',()=>openItem(el.dataset.id)));
+}
+
+function renderMonthList(){
+  const p=`${ym.y}-${String(ym.m+1).padStart(2,'0')}`;
+  const all=allCalendarItems();
+  const today=localISO(new Date());
+  const arrRaw=all.filter(t=>t.date.startsWith(p)||(t.endDate&&t.endDate.startsWith(p)));
+  const upcoming=arrRaw.filter(t=>(t.endDate||t.date||'')>=today).sort((a,b)=>a.date.localeCompare(b.date));
+  const past=arrRaw.filter(t=>(t.endDate||t.date||'')<today).sort((a,b)=>a.date.localeCompare(b.date));
+  const arr=[...upcoming.map(t=>({t,isPast:false})),...past.map(t=>({t,isPast:true}))];
+  $('monthList').innerHTML=arr.length?arr.map(({t,isPast})=>`
+    <div class="row ${catClass(t)} ${statusClass(t)} ${t.tentative?'tentative':''} ${isPast?'past-row':''}" data-id="${t.id}">
+      <div><b>${rangeText(t)||t.date.slice(5).replace('-','/')}</b><div class="small">${esc(t.time||'')}${t.location?` ｜📍${esc(t.location)}`:''}</div></div>
+      <div><span class="badge">${esc(t.category||'')}</span></div>
+      <div><b>${esc(t.title)}</b><div class="small">${t.speaker?`講師｜${esc(t.speaker)}<br>`:''}${esc(t.note||'')}</div></div>
+      <div>${isNoProgress(t)?'':statusChip(t)}</div>
+    </div>`).join(''):'<div class="small">本月目前沒有事項。</div>';
+  document.querySelectorAll('#monthList .row').forEach(el=>el.addEventListener('click',()=>openItem(el.dataset.id)));
+}
+
+/* ====== 每日待辦 ====== */
+let todoShowAll=false;
+let todoViewDate=localISO(new Date());
+function todoDateLabel(dateStr){
+  const today=localISO(new Date());
+  const tmr=localISO(new Date(Date.now()+86400000));
+  const md=dateStr.slice(5).replace('-','/');
+  if(dateStr===today)return `${md}（今天）`;
+  if(dateStr===tmr)return `${md}（明天）`;
+  return dateStr;
+}
+function todoQuadrant(item){
+  const imp=!!item.important, urg=!!item.urgent;
+  if(imp&&urg)return 0;
+  if(imp&&!urg)return 1;
+  if(!imp&&urg)return 2;
+  return 3;
+}
+const QUADRANT_COLORS=['#fde4e4','#ffe6cc','#fff1cf','#f3f4f6'];
+function renderTodoRow(item,realToday,isRealToday){
+  // 若曾經延續過（有 originalDate），一律用當初最原始的日期顯示標籤，
+  // 即使打勾完成後日期已經改成今天，標籤也會保留
+  let carriedFromDate=null;
+  if(item.originalDate && item.originalDate!==item.date){
+    carriedFromDate=item.originalDate;
+  }else if(isRealToday && (item.date||realToday)<realToday){
+    carriedFromDate=item.date;
+  }
+  const q=todoQuadrant(item);
+  return `<div class="todoRow ${item.done?'done':''}" data-id="${item.id}">
+    <input type="checkbox" ${item.done?'checked':''} data-toggle="${item.id}">
+    <select class="prioSelect" data-prio="${item.id}" style="background:${QUADRANT_COLORS[q]};border-radius:8px;border:1px solid #ccc;font-size:12px;font-weight:700;padding:3px 4px;">
+      <option value="q0" ${q===0?'selected':''}>🔴 重要＋緊急</option>
+      <option value="q1" ${q===1?'selected':''}>🟠 重要</option>
+      <option value="q2" ${q===2?'selected':''}>🟡 緊急</option>
+      <option value="q3" ${q===3?'selected':''}>⚪ 一般</option>
+    </select>
+    <input type="date" class="todoDateEdit" data-editdate="${item.id}" value="${item.date||''}" title="直接改這裡就能調整日期，不用刪除重新新增" style="font-size:11px;padding:3px 4px;border-radius:6px;border:1px solid #ccc;">
+    <span class="grow">${esc(item.text)}${carriedFromDate?`<span class="small" style="color:#e39a1f;margin-left:6px;">（延續自 ${esc(carriedFromDate.slice(5).replace('-','/'))}）</span>`:''}</span>
+    <button data-del="${item.id}">×</button>
+  </div>`;
+}
+function renderDailyTodos(){
+  const box=$('dailyTodoList');
+  if(!box)return;
+  const labelEl=$('todoViewLabel');
+  if(labelEl)labelEl.textContent=todoShowAll?'目前顯示：全部日期':`目前顯示：${todoDateLabel(todoViewDate)}`;
+  const realToday=localISO(new Date());
+  const isRealToday=!todoShowAll && todoViewDate===realToday;
+  let source;
+  if(todoShowAll){
+    source=dailyTodos;
+  }else if(isRealToday){
+    // 檢視「今天」時，尚未完成的舊項目會自動延續顯示在今天，不需手動搬動
+    source=dailyTodos.filter(item=>{
+      const d=item.date||realToday;
+      return d===realToday || (!item.done && d<realToday);
+    });
+  }else{
+    source=dailyTodos.filter(item=>(item.date||todoViewDate)===todoViewDate);
+  }
+  if(!source.length){
+    box.innerHTML=todoShowAll
+      ?'<div class="small">目前沒有待辦事項，選好日期、輸入後按「新增」加入。</div>'
+      :`<div class="small">${esc(todoDateLabel(todoViewDate))} 目前沒有待辦事項。</div>`;
+    return;
+  }
+  const sortFn=(a,b)=>(Number(!!a.done)-Number(!!b.done))||(todoQuadrant(a)-todoQuadrant(b));
+  if(todoShowAll){
+    // 顯示全部日期：仍依日期分組，組內依重要／緊急排序
+    const groups={};
+    source.forEach(item=>{
+      const d=item.date||todoViewDate;
+      (groups[d]=groups[d]||[]).push(item);
+    });
+    const dates=Object.keys(groups).sort();
+    box.innerHTML=dates.map(d=>{
+      const items=[...groups[d]].sort(sortFn);
+      return `<div class="todoDateGroup">
+        <div class="todoDateLabel">${esc(todoDateLabel(d))}</div>
+        ${items.map(item=>renderTodoRow(item,realToday,isRealToday)).join('')}
+      </div>`;
+    }).join('');
+  }else{
+    // 單一天檢視（含延續項目）：不分組，全部混在一起依重要／緊急排序
+    const items=[...source].sort(sortFn);
+    box.innerHTML=items.map(item=>renderTodoRow(item,realToday,isRealToday)).join('');
+  }
+  box.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.addEventListener('change',()=>toggleDailyTodo(Number(cb.dataset.toggle))));
+  box.querySelectorAll('button[data-del]').forEach(btn=>btn.addEventListener('click',()=>deleteDailyTodo(Number(btn.dataset.del))));
+  box.querySelectorAll('.prioSelect').forEach(el=>el.addEventListener('change',()=>setDailyTodoQuadrant(Number(el.dataset.prio),el.value)));
+  box.querySelectorAll('.todoDateEdit').forEach(el=>el.addEventListener('change',()=>updateDailyTodoDate(Number(el.dataset.editdate),el.value)));
+}
+async function addDailyTodo(){
+  const input=$('newTodoText');
+  const dateInput=$('newTodoDate');
+  const important=$('newTodoImportant').checked;
+  const urgent=$('newTodoUrgent').checked;
+  const text=input.value.trim();
+  if(!text)return;
+  const date=dateInput.value||localISO(new Date());
+  dailyTodos.push({id:Date.now(),date,text,done:false,important,urgent});
+  input.value='';
+  $('newTodoImportant').checked=false;
+  $('newTodoUrgent').checked=false;
+  renderDailyTodos();
+  await save();
+}
+async function toggleDailyTodo(id){
+  const item=dailyTodos.find(x=>x.id===id);
+  if(!item)return;
+  item.done=!item.done;
+  // 若這筆待辦還沒有明確連結，嘗試用文字內容比對回溯連結（適用於連結功能上線前建立的舊每日待辦）
+  if(item.sourceTaskId===undefined || item.sourceSubtaskId===undefined){
+    const sep='－';
+    const idx=item.text.indexOf(sep);
+    if(idx>0){
+      const titlePart=item.text.slice(0,idx);
+      const subPart=item.text.slice(idx+sep.length);
+      const srcTask=tasks.find(t=>t.title===titlePart && (t.subtasks||[]).some(s=>s.text===subPart));
+      if(srcTask){
+        const srcSub=srcTask.subtasks.find(s=>s.text===subPart);
+        if(srcSub){
+          if(srcSub.id===undefined) srcSub.id=`${srcTask.id}_legacy_${Date.now()}`;
+          item.sourceTaskId=srcTask.id;
+          item.sourceSubtaskId=srcSub.id;
+        }
+      }
+    }
+  }
+  // 若這筆待辦是從某個行程的細項待辦連結過來的，同步回去源頭那一筆行程
+  if(item.sourceTaskId!==undefined && item.sourceSubtaskId!==undefined){
+    const srcTask=tasks.find(t=>t.id===item.sourceTaskId);
+    if(srcTask && srcTask.subtasks){
+      const srcSub=srcTask.subtasks.find(s=>s.id===item.sourceSubtaskId);
+      if(srcSub) srcSub.done=item.done;
+    }
+    // 如果目前正好打開這筆行程的編輯視窗，畫面上也同步打勾
+    if(editingId===item.sourceTaskId){
+      const es=editingSubtasks.find(s=>s.id===item.sourceSubtaskId);
+      if(es){ es.done=item.done; renderSubtasks(); }
+    }
+  }
+  if(item.done){
+    // 在「今天」畫面把延續過來的舊項目打勾完成時，直接把日期改成今天
+    // 這樣它會留在今天並劃掉，不會因為打勾而消失、回到原本延續的那一天
+    // 同時保留原始日期到 originalDate，讓「延續自」標籤即使之後日期改了也還看得到
+    const realToday=localISO(new Date());
+    if(!todoShowAll && todoViewDate===realToday){
+      if(item.date && item.date!==realToday && !item.originalDate){
+        item.originalDate=item.date;
+      }
+      item.date=realToday;
+    }
+  }
+  renderDailyTodos();
+  await save();
+}
+async function setDailyTodoQuadrant(id,value){
+  const item=dailyTodos.find(x=>x.id===id);
+  if(!item)return;
+  const map={q0:[true,true],q1:[true,false],q2:[false,true],q3:[false,false]};
+  const [important,urgent]=map[value]||[false,false];
+  item.important=important; item.urgent=urgent;
+  renderDailyTodos();
+  await save();
+}
+async function updateDailyTodoDate(id,newDate){
+  const item=dailyTodos.find(x=>x.id===id);
+  if(!item||!newDate)return;
+  item.date=newDate;
+  renderDailyTodos();
+  await save();
+  showToast('已更新日期',false);
+}
+async function deleteDailyTodo(id){
+  dailyTodos=dailyTodos.filter(x=>x.id!==id);
+  renderDailyTodos();
+  await save();
+}
+async function removeDuplicateTodos(){
+  const seen=new Map();
+  const deduped=[];
+  let removedCount=0;
+  dailyTodos.forEach(item=>{
+    const key=(item.date||'')+'||'+(item.text||'').trim();
+    if(seen.has(key)){
+      removedCount++;
+      const idx=seen.get(key);
+      if(item.done) deduped[idx].done=true; // 只要其中一筆已完成，就保留完成狀態
+      if(item.important) deduped[idx].important=true;
+      if(item.urgent) deduped[idx].urgent=true;
+    }else{
+      seen.set(key,deduped.length);
+      deduped.push(item);
+    }
+  });
+  dailyTodos=deduped;
+  renderDailyTodos();
+  await save();
+  showToast(removedCount>0?`已清除 ${removedCount} 筆重複項目`:'沒有找到重複的項目',false);
+}
+
+/* ====== 收件／回條追蹤 ====== */
+function renderCollections(){
+  const box=$('collectionList');
+  if(!box)return;
+  if(!collections.length){
+    box.innerHTML='<div class="small">目前沒有追蹤項目，按「＋新增追蹤項目」開始。</div>';
+    return;
+  }
+  const today=localISO(new Date());
+  const withMeta=collections.map(c=>{
+    const mode=c.mode||'class';
+    let missing,total,doneCount,modeLabel,noRosterMsg;
+    if(mode==='student'){
+      const students=c.students||[];
+      total=students.length;
+      missing=students.filter(s=>!s.submitted).map(s=>s.name);
+      doneCount=total-missing.length;
+      modeLabel='學生';
+      noRosterMsg='尚未新增學生';
+    }else if(mode==='domain'){
+      const submittedSet=new Set(c.submitted||[]);
+      missing=DOMAIN_SUBJECTS.filter(d=>!submittedSet.has(d));
+      total=DOMAIN_SUBJECTS.length;
+      doneCount=total-missing.length;
+      modeLabel='領域';
+      noRosterMsg='—';
+    }else{
+      const submittedSet=new Set(c.submitted||[]);
+      missing=classList.filter(cls=>!submittedSet.has(cls));
+      total=classList.length;
+      doneCount=total-missing.length;
+      modeLabel='班級';
+      noRosterMsg='尚未設定班級';
+    }
+    const overdue=c.dueDate && c.dueDate<today && missing.length>0;
+    // 排序：已完成排最上面，其次已逾期，最後是還在追蹤中的
+    const rank=missing.length===0?0:overdue?1:2;
+    return {c,mode,missing,total,doneCount,modeLabel,noRosterMsg,overdue,rank};
+  });
+  withMeta.sort((a,b)=>a.rank-b.rank);
+  box.innerHTML=withMeta.map(({c,missing,total,doneCount,modeLabel,noRosterMsg,overdue})=>{
+    const borderColor=missing.length===0?'#7fb88f':overdue?'#c94f4f':'#e39a1f';
+    const statusHtml=overdue?'<span class="statuschip blocked">已逾期</span>':missing.length?'<span class="statuschip todo">追蹤中</span>':'<span class="statuschip done">✓ 已完成</span>';
+    return `<div class="row trackerRow" data-id="${c.id}" style="border-left-color:${borderColor}">
+      <div><b>${c.dueDate?esc(c.dueDate.slice(5).replace('-','/')):'—'}</b><div class="small">截止</div></div>
+      <div><span class="badge">${total?`${doneCount}/${total} 已完成`:noRosterMsg}</span><div class="small">${modeLabel}</div></div>
+      <div><b>${esc(c.title)}</b><div class="small">${missing.length?`尚未完成：${missing.map(esc).join('、')}`:'✅ 全數完成'}</div></div>
+      <div>${statusHtml}</div>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('.row').forEach(el=>el.addEventListener('click',()=>openCollEdit(Number(el.dataset.id))));
+}
+function classGradeKey(cls){
+  let m=cls.match(/^([1-9])/);
+  if(m)return m[1];
+  m=cls.match(/^(七|八|九|十|一|二|三|四|五|六)/);
+  if(m)return m[1];
+  return null;
+}
+function gradeLabel(key){
+  const map={'1':'一年級','2':'二年級','3':'三年級','4':'四年級','5':'五年級','6':'六年級','7':'七年級','8':'八年級','9':'九年級',
+    '一':'一年級','二':'二年級','三':'三年級','四':'四年級','五':'五年級','六':'六年級','七':'七年級','八':'八年級','九':'九年級','十':'十年級'};
+  return map[key]||key;
+}
+function renderCollClassCheckboxes(submitted){
+  const box=$('collClassCheckboxes');
+  const submittedSet=new Set(submitted||[]);
+  if(!classList.length){
+    box.innerHTML='<div class="small">尚未設定班級清單，請先關閉這個視窗，按「⚙ 班級清單設定」建立班級清單。</div>';
+    return;
+  }
+  const grades=[...new Set(classList.map(classGradeKey).filter(Boolean))];
+  let quickBar='<div class="small" style="margin-bottom:6px;">快速選取（再點一次可取消該組）：</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">';
+  quickBar+='<button type="button" data-grade-all="1">全選</button><button type="button" data-grade-clear="1">全不選</button>';
+  grades.forEach(g=>{ quickBar+=`<button type="button" data-grade="${esc(g)}">全${esc(gradeLabel(g))}</button>`; });
+  quickBar+='</div>';
+  const boxesHtml=classList.map(cls=>`
+    <label style="display:flex;align-items:center;gap:5px;font-size:13px;border:1px solid #e1e5ea;border-radius:8px;padding:5px 8px;">
+      <input type="checkbox" value="${esc(cls)}" ${submittedSet.has(cls)?'checked':''}> ${esc(cls)}
+    </label>`).join('');
+  box.innerHTML=quickBar+`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:6px;">${boxesHtml}</div>`;
+
+  box.querySelectorAll('button[data-grade]').forEach(btn=>btn.addEventListener('click',()=>{
+    const g=btn.dataset.grade;
+    const boxes=[...box.querySelectorAll('input[type=checkbox]')].filter(cb=>classGradeKey(cb.value)===g);
+    const allChecked=boxes.every(cb=>cb.checked);
+    boxes.forEach(cb=>cb.checked=!allChecked);
+  }));
+  box.querySelectorAll('button[data-grade-all]').forEach(btn=>btn.addEventListener('click',()=>{
+    box.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.checked=true);
+  }));
+  box.querySelectorAll('button[data-grade-clear]').forEach(btn=>btn.addEventListener('click',()=>{
+    box.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.checked=false);
+  }));
+}
+function renderCollDomainCheckboxes(submitted){
+  const box=$('collDomainCheckboxes');
+  const submittedSet=new Set(submitted||[]);
+  let quickBar='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">';
+  quickBar+='<button type="button" data-domain-all="1">全選</button><button type="button" data-domain-clear="1">全不選</button>';
+  quickBar+='</div>';
+  const boxesHtml=DOMAIN_SUBJECTS.map(d=>`
+    <label style="display:flex;align-items:center;gap:5px;font-size:13px;border:1px solid #e1e5ea;border-radius:8px;padding:5px 8px;">
+      <input type="checkbox" value="${esc(d)}" ${submittedSet.has(d)?'checked':''}> ${esc(d)}
+    </label>`).join('');
+  box.innerHTML=quickBar+`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:6px;">${boxesHtml}</div>`;
+
+  box.querySelectorAll('button[data-domain-all]').forEach(btn=>btn.addEventListener('click',()=>{
+    box.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.checked=true);
+  }));
+  box.querySelectorAll('button[data-domain-clear]').forEach(btn=>btn.addEventListener('click',()=>{
+    box.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.checked=false);
+  }));
+}
+function renderCollStudentList(){
+  const box=$('collStudentList');
+  if(!box)return;
+  box.innerHTML=editingCollStudents.length?editingCollStudents.map((s,i)=>`
+    <div class="subtask"><input type="checkbox" data-i="${i}" ${s.submitted?'checked':''}><span class="grow">${esc(s.name)}</span><button data-del="${i}">×</button></div>`).join(''):'<div class="small">尚未新增學生，輸入姓名後按「＋新增」（可一次貼多位）。</div>';
+  box.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.addEventListener('change',()=>editingCollStudents[Number(cb.dataset.i)].submitted=cb.checked));
+  box.querySelectorAll('button[data-del]').forEach(btn=>btn.addEventListener('click',()=>{editingCollStudents.splice(Number(btn.dataset.del),1);renderCollStudentList();}));
+}
+function addCollStudents(){
+  const input=$('newCollStudentText');
+  const raw=input.value.trim();
+  if(!raw)return;
+  const names=raw.split(/[,，、\n]/).map(s=>s.trim()).filter(Boolean);
+  names.forEach(name=>{
+    if(!editingCollStudents.some(s=>s.name===name)) editingCollStudents.push({name,submitted:false});
+  });
+  input.value='';
+  renderCollStudentList();
+}
+function updateCollModeUI(){
+  const mode=document.querySelector('input[name=collMode]:checked')?.value||'class';
+  $('collClassSection').style.display=mode==='class'?'block':'none';
+  $('collStudentSection').style.display=mode==='student'?'block':'none';
+  $('collDomainSection').style.display=mode==='domain'?'block':'none';
+}
+function openCollNew(){
+  editingCollId=null; editingCollStudents=[];
+  $('collModalTitle').textContent='新增追蹤項目';
+  $('collId').value=''; $('collTitle').value=''; $('collDue').value='';
+  $('collModeClass').checked=true;
+  updateCollModeUI();
+  renderCollClassCheckboxes([]);
+  renderCollStudentList();
+  renderCollDomainCheckboxes([]);
+  $('collDeleteBtn').style.visibility='hidden'; $('collDuplicateBtn').style.visibility='hidden'; $('collDeleteFeedback').style.display='none';
+  $('collModalBack').classList.add('open');
+}
+function openCollEdit(id){
+  const c=collections.find(x=>Number(x.id)===Number(id)); if(!c)return;
+  editingCollId=Number(id);
+  const mode=c.mode||'class';
+  editingCollStudents=JSON.parse(JSON.stringify(c.students||[]));
+  $('collModalTitle').textContent='編輯追蹤項目';
+  $('collId').value=c.id; $('collTitle').value=c.title||''; $('collDue').value=c.dueDate||'';
+  $('collModeClass').checked=mode==='class'; $('collModeStudent').checked=mode==='student'; $('collModeDomain').checked=mode==='domain';
+  updateCollModeUI();
+  renderCollClassCheckboxes(mode==='class'?c.submitted||[]:[]);
+  renderCollStudentList();
+  renderCollDomainCheckboxes(mode==='domain'?c.submitted||[]:[]);
+  $('collDeleteBtn').style.visibility='visible'; $('collDuplicateBtn').style.visibility='visible'; $('collDeleteFeedback').style.display='none';
+  $('collModalBack').classList.add('open');
+}
+function duplicateCollCurrent(){
+  // 保留目前視窗裡的名單內容（學生姓名／班級／領域），但視為「新增」，勾選狀態歸零重新開始
+  editingCollId=null;
+  $('collModalTitle').textContent='複製建立新追蹤項目（請確認名稱與截止日後儲存）';
+  $('collId').value='';
+  editingCollStudents=editingCollStudents.map(s=>({...s,submitted:false}));
+  renderCollStudentList();
+  document.querySelectorAll('#collClassCheckboxes input[type=checkbox]').forEach(cb=>cb.checked=false);
+  document.querySelectorAll('#collDomainCheckboxes input[type=checkbox]').forEach(cb=>cb.checked=false);
+  $('collDeleteBtn').style.visibility='hidden';
+  $('collDuplicateBtn').style.visibility='hidden';
+  $('collDeleteFeedback').style.display='none';
+}
+function closeCollModal(){ $('collModalBack').classList.remove('open'); }
+async function saveCollCurrent(){
+  const title=$('collTitle').value.trim();
+  if(!title){showToast('請填寫名稱',true);return}
+  const mode=document.querySelector('input[name=collMode]:checked')?.value||'class';
+  let c;
+  if(mode==='student'){
+    c={ id: editingCollId===null?Date.now():editingCollId, title, dueDate:$('collDue').value||'', mode:'student', students:editingCollStudents, submitted:[] };
+  }else if(mode==='domain'){
+    const checked=[...document.querySelectorAll('#collDomainCheckboxes input[type=checkbox]:checked')].map(cb=>cb.value);
+    c={ id: editingCollId===null?Date.now():editingCollId, title, dueDate:$('collDue').value||'', mode:'domain', submitted:checked, students:[] };
+  }else{
+    const checked=[...document.querySelectorAll('#collClassCheckboxes input[type=checkbox]:checked')].map(cb=>cb.value);
+    c={ id: editingCollId===null?Date.now():editingCollId, title, dueDate:$('collDue').value||'', mode:'class', submitted:checked, students:[] };
+  }
+  if(editingCollId===null){ collections.push(c); }
+  else{ const i=collections.findIndex(x=>x.id===editingCollId); if(i>=0)collections[i]=c; }
+  closeCollModal(); renderCollections();
+  await save();
+}
+async function deleteCollCurrent(){
+  const feedback=$('collDeleteFeedback');
+  if(editingCollId===null){
+    if(feedback){feedback.style.display='block';feedback.textContent='目前沒有可刪除的追蹤項目。';}
+    return;
+  }
+  collections=collections.filter(x=>x.id!==editingCollId);
+  editingCollId=null;
+  closeCollModal(); renderCollections();
+  await save();
+}
+
+/* ====== 班級清單設定 ====== */
+function openClassSettings(){
+  $('classListInput').value=classList.join('\n');
+  $('classModalBack').classList.add('open');
+}
+function closeClassModal(){ $('classModalBack').classList.remove('open'); }
+async function saveClassList(){
+  const raw=$('classListInput').value;
+  const parsed=raw.split(/[\n,，]/).map(s=>s.trim()).filter(Boolean);
+  classList=[...new Set(parsed)];
+  closeClassModal();
+  renderCollections();
+  await save();
+}
+
+const coreTemplate=['確認會議時間與地點','整理議程／資料','發開會通知單','寄開會資料','LINE提醒','通知與會人員','準備簽到／會議資料','會後整理會議紀錄','追蹤會議決議事項'];
+const meetingTemplate=['確認會議時間與地點','整理議程／資料','通知與會人員','準備簽到／會議資料','會後整理紀錄','追蹤決議事項'];
+// 會議類範本每一項的建議時間點（相對於會議當天）：
+//   daysBefore／daysAfter：往前／往後推算的工作日數
+//   weekdayOfEventWeek：對齊到「會議當週」的星期幾（1=一...5=五），若剛好是假日會自動順延到下一個工作日
+const coreTemplateTiming={
+  '確認會議時間與地點':{daysBefore:3},
+  '整理議程／資料':{daysBefore:5},
+  '發開會通知單':{weekdayOfEventWeek:1},
+  '寄開會資料':{daysBefore:2},
+  'LINE提醒':{daysBefore:1},
+  '通知與會人員':{weekdayOfEventWeek:1},
+  '準備簽到／會議資料':{daysBefore:1},
+  '會後整理會議紀錄':{daysAfter:1},
+  '追蹤會議決議事項':{daysAfter:3}
+};
+const meetingTemplateTiming={
+  '確認會議時間與地點':{daysBefore:3},
+  '整理議程／資料':{daysBefore:3},
+  '通知與會人員':{weekdayOfEventWeek:1},
+  '準備簽到／會議資料':{daysBefore:1},
+  '會後整理紀錄':{daysAfter:1},
+  '追蹤決議事項':{daysAfter:3}
+};
+const lectureTemplate=['確認講師','聯絡並敲定時間','確認講題','借場地','確認設備','公告導師','任課老師告知','整理學生名單','前一天提醒講師','前一天提醒導師／學生','接待講師','拍照留存','鐘點費／核銷'];
+const cityCompetitionTemplate=[
+  '確認市賽公文／競賽實施計畫',
+  '確認比賽日期、地點、報到時間',
+  '確認參賽學生名單與組別／項目',
+  '確認指導老師',
+  '確認參賽資格與身分資料',
+  '收齊參賽切結書／相關表件',
+  '完成市賽報名並再次核對資料',
+  '確認抽籤／出場序／競賽題目公告',
+  '將競賽資訊通知指導老師',
+  '將比賽時間、地點與注意事項通知學生／家長',
+  '辦理學生公假',
+  '確認帶隊老師／教師公假',
+  '確認交通方式與集合時間地點',
+  '準備參賽資料／證件／競賽用品',
+  '行前再次提醒學生與帶隊老師',
+  '確認成績公告',
+  '賽後成績整理與校內公告',
+  '獎狀／敘獎／後續培訓事項處理'
+];
+const schoolCompetitionTemplate=[
+  '確認校內競賽項目、日期與場地',
+  '擬定／確認校內競賽辦法',
+  '發各班報名通知',
+  '確認各班報名名單',
+  '彙整參賽名單與組別',
+  '安排競賽場地',
+  '確認評審／裁判老師',
+  '準備題目、評分表與競賽資料',
+  '安排競賽順序／抽籤',
+  '通知參賽學生與導師',
+  '通知評審／工作人員',
+  '準備簽到表與文具設備',
+  '競賽當日場地與流程確認',
+  '彙整評審成績',
+  '確認得獎名單',
+  '公告競賽結果',
+  '獎狀／獎品／頒獎處理',
+  '成果資料與照片留存',
+  '確認市賽代表及後續報名'
+];
+const competitionTemplate=['確認競賽公文','確認參賽名單','完成報名','通知相關人員','行前提醒','賽後成績整理'];
+const learningSupportTemplate=["確認學習扶助公文、開班申請期限與本期規定", "確認／更新學習扶助學生名單", "確認需調查的學生與科目", "製作並發放學習扶助參加意願調查表", "追蹤調查表回收", "彙整家長／學生參加意願", "依回收結果製作正式學生名單", "確認各班別、科目與預計開班人數", "找國文／英文／數學等授課老師", "確認授課老師可上課時段", "確認授課老師鐘點費與相關規定", "找教室／確認可使用教室", "安排班別、課表、授課時間與教室", "確認開班經費核定／可申請項目", "依公文完成開班申請填報", "核對系統學生、教師、班別、節數資料", "送出開班資料並留存送出／核定紀錄", "依核定結果辦理經費請撥／送經費資料", "確認經費子目與後續核銷方式", "製作學生點名／出缺席紀錄", "發開課通知給學生／家長", "通知授課老師正式開課日期、課表與教室", "通知導師／相關處室開課資訊", "開課前再次確認學生名單、老師與教室", "課程期間追蹤學生出缺席", "課程期間追蹤授課節數與異動", "確認成果填報期限", "依期限於網站填報執行成果", "整理教師鐘點費與課表憑證", "確認勞保／勞退金額", "確認補充保費", "整理行政費等核銷資料", "核對實支、已撥付、結餘等經費", "完成經費結算／結報", "依規定繳回餘款或送回核定文件", "成果與核銷資料留存", "準備各班教室日誌／上課紀錄表", "教室日誌填入班別、科目、授課教師與上課日期", "將教室日誌交給授課老師並說明填寫方式", "確認每次上課完成教室日誌／授課紀錄", "定期檢查教室日誌填寫是否完整", "追蹤缺漏的授課日期、節數或教師簽名", "期末收回各班教室日誌", "核對教室日誌、學生出缺席與實際授課節數", "教室日誌整理留存，供成果填報／經費核銷查核"];
+function getTemplateKey(t){
+  const title=t.title||'', c=t.category||'';
+  if(c==='學習扶助'||title.includes('學習扶助')||title.includes('學扶'))return'learningSupport';
+  if(title.includes('核心會議'))return'core';
+  if(c==='會議'||title.includes('會議'))return'meeting';
+  if(c.includes('講座')||title.includes('講座'))return'lecture';
+  if(/新竹市|市賽|市複賽/.test(title) && (c==='競賽'||title.includes('競賽')||title.includes('比賽')))return'cityCompetition';
+  if(/校內|國中部語文競賽|英語拼字|校內競賽/.test(title) && (c==='競賽'||title.includes('競賽')||title.includes('比賽')))return'schoolCompetition';
+  if(c==='競賽'||title.includes('競賽')||title.includes('比賽'))return'competition';
+  return null;
+}
+const TEMPLATE_BASE={
+  learningSupport:learningSupportTemplate,
+  core:coreTemplate,
+  meeting:meetingTemplate,
+  lecture:lectureTemplate,
+  cityCompetition:cityCompetitionTemplate,
+  schoolCompetition:schoolCompetitionTemplate,
+  competition:competitionTemplate
+};
+const TEMPLATE_LABEL={learningSupport:'學習扶助',core:'核心會議',meeting:'會議',lecture:'講座',cityCompetition:'市賽競賽',schoolCompetition:'校內競賽',competition:'競賽'};
+function templateFor(t){
+  const key=getTemplateKey(t);
+  if(!key)return[];
+  const base=TEMPLATE_BASE[key]||[];
+  const extra=(templateAdditions[key]||[]).filter(x=>!base.includes(x));
+  return base.concat(extra);
+}
+
+/* ====== 精進班講座追蹤 ====== */
+function ensureBoostTracker(){
+  BOOST_SUBJECTS.forEach(s=>{
+    if(!boostTracker[s]){
+      boostTracker[s]={status:'尚未邀約',speaker:'',date:'',period:'',note:'',prep:lectureTemplate.map(t=>({text:t,done:false}))};
+    }
+  });
+}
+function renderBoostTracker(){
+  ensureBoostTracker();
+  const box=$('boostList');
+  if(!box)return;
+  const notInvited=BOOST_SUBJECTS.filter(s=>boostTracker[s].status==='尚未邀約');
+  $('boostSummary').textContent=notInvited.length?`尚未邀約：${notInvited.join('、')}`:'✅ 全部已邀約';
+  const statusClassMap={'尚未邀約':'todo','邀約中':'doing','已確認':'done','婉拒':'blocked','暫時保留':'doing'};
+  const borderMap={'尚未邀約':'#c94f4f','邀約中':'#e39a1f','已確認':'#7fb88f','婉拒':'#8f98a1','暫時保留':'#e39a1f'};
+  box.innerHTML=BOOST_SUBJECTS.map(s=>{
+    const d=boostTracker[s];
+    const doneCount=(d.prep||[]).filter(p=>p.done).length;
+    const total=(d.prep||[]).length;
+    const chipClass=statusClassMap[d.status]||'todo';
+    const dateText=[d.date?d.date.slice(5).replace('-','/'):'',d.period||''].filter(Boolean).join('｜');
+    return `<div class="row trackerRow" data-subject="${esc(s)}" style="border-left-color:${borderMap[d.status]||'#8f98a1'}">
+      <div><b>${esc(s)}</b></div>
+      <div><span class="statuschip ${chipClass}">${esc(d.status)}</span></div>
+      <div><b>${d.speaker?`講師｜${esc(d.speaker)}`:'（尚無講師）'}</b><div class="small">${esc(dateText)}${d.note?' 📝':''}</div></div>
+      <div><span class="badge">前置 ${doneCount}/${total}</span></div>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('.row').forEach(el=>el.addEventListener('click',()=>openBoostEdit(el.dataset.subject)));
+}
+function openBoostEdit(subject){
+  ensureBoostTracker();
+  const d=boostTracker[subject]; if(!d)return;
+  editingBoostSubject=subject;
+  editingBoostPrep=JSON.parse(JSON.stringify(d.prep||[]));
+  $('boostModalTitle').textContent=`編輯精進班講座｜${subject}`;
+  $('boostSubjectId').value=subject;
+  $('boostStatus').value=d.status||'尚未邀約';
+  $('boostDate').value=d.date||'';
+  $('boostPeriod').value=d.period||'';
+  $('boostSpeaker').value=d.speaker||'';
+  $('boostNote').value=d.note||'';
+  const hint=$('boostOldHint');
+  if(!d.date && d.dateTime){
+    hint.style.display='block';
+    hint.textContent=`⚠ 原本記錄的日期／節次：「${d.dateTime}」，請改用上面的日期＋節次欄位重新填寫，才能同步顯示在日曆上。`;
+  }else{
+    hint.style.display='none'; hint.textContent='';
+  }
+  renderBoostPrepList();
+  $('boostModalBack').classList.add('open');
+}
+function renderBoostPrepList(){
+  $('boostPrepList').innerHTML=editingBoostPrep.map((p,i)=>`<div class="subtask"><input type="checkbox" data-i="${i}" ${p.done?'checked':''}><span class="grow">${esc(p.text)}</span><button data-del="${i}">×</button></div>`).join('');
+  document.querySelectorAll('#boostPrepList input[type=checkbox]').forEach(cb=>cb.addEventListener('change',()=>editingBoostPrep[Number(cb.dataset.i)].done=cb.checked));
+  document.querySelectorAll('#boostPrepList button[data-del]').forEach(btn=>btn.addEventListener('click',()=>{editingBoostPrep.splice(Number(btn.dataset.del),1);renderBoostPrepList();}));
+}
+function closeBoostModal(){ $('boostModalBack').classList.remove('open'); }
+async function saveBoostCurrent(){
+  if(!editingBoostSubject)return;
+  boostTracker[editingBoostSubject]={
+    status:$('boostStatus').value,
+    speaker:$('boostSpeaker').value.trim(),
+    date:$('boostDate').value||'',
+    period:$('boostPeriod').value.trim(),
+    note:$('boostNote').value.trim(),
+    prep:editingBoostPrep
+  };
+  closeBoostModal();
+  renderBoostTracker();
+  render();
+  renderLectureOverview();
+  await save();
+}
+function prepStatus(prep){
+  const total=(prep||[]).length;
+  if(!total)return'todo';
+  const doneCount=prep.filter(p=>p.done).length;
+  if(doneCount===total)return'done';
+  if(doneCount>0)return'doing';
+  return'todo';
+}
+function boostAsTasks(){
+  ensureBoostTracker();
+  return BOOST_SUBJECTS.filter(s=>(boostTracker[s].status==='已確認'||boostTracker[s].status==='邀約中') && boostTracker[s].date).map(s=>{
+    const d=boostTracker[s];
+    const tentative=d.status==='邀約中';
+    return {
+      id:'boost_'+s, isBoost:true, date:d.date, endDate:d.date,
+      time:d.period||'', category:'精進班講座', status:prepStatus(d.prep),
+      title:`${tentative?'【邀約中】':''}國九精進班講座－${s}`, subject:s, inviteStatus:d.status, speaker:d.speaker||'',
+      note:'', subtasks:d.prep||[], fixed:false, tentative
+    };
+  });
+}
+
+/* ====== 教師增能研習講師邀約 ====== */
+const trainingTemplate=['確認講師','聯絡並敲定時間','確認研習主題','借場地','確認設備','發研習通知全體教師','開放報名並整理名單','前一天提醒講師','前一天提醒與會教師','準備簽到表','接待講師','拍照留存','回收研習心得／時數登錄','鐘點費／核銷'];
+function ensureTrainingTracker(){
+  TRAINING_SUBJECTS.forEach(s=>{
+    if(!trainingTracker[s]){
+      trainingTracker[s]={status:'尚未邀約',speaker:'',date:'',period:'',note:'',prep:trainingTemplate.map(t=>({text:t,done:false}))};
+    }
+  });
+}
+function renderTrainingTracker(){
+  ensureTrainingTracker();
+  const box=$('trainingList');
+  if(!box)return;
+  const notInvited=TRAINING_SUBJECTS.filter(s=>trainingTracker[s].status==='尚未邀約');
+  $('trainingSummary').textContent=notInvited.length?`尚未邀約：${notInvited.join('、')}`:'✅ 全部已邀約';
+  const statusClassMap={'尚未邀約':'todo','邀約中':'doing','已確認':'done','婉拒':'blocked','暫時保留':'doing'};
+  const borderMap={'尚未邀約':'#c94f4f','邀約中':'#e39a1f','已確認':'#7fb88f','婉拒':'#8f98a1','暫時保留':'#e39a1f'};
+  box.innerHTML=TRAINING_SUBJECTS.map(s=>{
+    const d=trainingTracker[s];
+    const doneCount=(d.prep||[]).filter(p=>p.done).length;
+    const total=(d.prep||[]).length;
+    const chipClass=statusClassMap[d.status]||'todo';
+    const dateText=[d.date?d.date.slice(5).replace('-','/'):'',d.period||''].filter(Boolean).join('｜');
+    return `<div class="row trackerRow" data-subject="${esc(s)}" style="border-left-color:${borderMap[d.status]||'#8f98a1'}">
+      <div><b>${esc(s)}</b></div>
+      <div><span class="statuschip ${chipClass}">${esc(d.status)}</span></div>
+      <div><b>${d.speaker?`講師｜${esc(d.speaker)}`:'（尚無講師）'}</b><div class="small">${esc(dateText)}${d.note?' 📝':''}</div></div>
+      <div><span class="badge">前置 ${doneCount}/${total}</span></div>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('.row').forEach(el=>el.addEventListener('click',()=>openTrainingEdit(el.dataset.subject)));
+}
+function openTrainingEdit(subject){
+  ensureTrainingTracker();
+  const d=trainingTracker[subject]; if(!d)return;
+  editingTrainingSubject=subject;
+  editingTrainingPrep=JSON.parse(JSON.stringify(d.prep||[]));
+  $('trainingModalTitle').textContent=`編輯教師增能研習｜${subject}`;
+  $('trainingSubjectId').value=subject;
+  $('trainingStatus').value=d.status||'尚未邀約';
+  $('trainingDate').value=d.date||'';
+  $('trainingPeriod').value=d.period||'';
+  $('trainingSpeaker').value=d.speaker||'';
+  $('trainingNote').value=d.note||'';
+  const hint=$('trainingOldHint');
+  if(!d.date && d.dateTime){
+    hint.style.display='block';
+    hint.textContent=`⚠ 原本記錄的日期／節次：「${d.dateTime}」，請改用上面的日期＋節次欄位重新填寫，才能同步顯示在日曆上。`;
+  }else{
+    hint.style.display='none'; hint.textContent='';
+  }
+  renderTrainingPrepList();
+  $('trainingModalBack').classList.add('open');
+}
+function renderTrainingPrepList(){
+  $('trainingPrepList').innerHTML=editingTrainingPrep.map((p,i)=>`<div class="subtask"><input type="checkbox" data-i="${i}" ${p.done?'checked':''}><span class="grow">${esc(p.text)}</span><button data-del="${i}">×</button></div>`).join('');
+  document.querySelectorAll('#trainingPrepList input[type=checkbox]').forEach(cb=>cb.addEventListener('change',()=>editingTrainingPrep[Number(cb.dataset.i)].done=cb.checked));
+  document.querySelectorAll('#trainingPrepList button[data-del]').forEach(btn=>btn.addEventListener('click',()=>{editingTrainingPrep.splice(Number(btn.dataset.del),1);renderTrainingPrepList();}));
+}
+function closeTrainingModal(){ $('trainingModalBack').classList.remove('open'); }
+async function saveTrainingCurrent(){
+  if(!editingTrainingSubject)return;
+  trainingTracker[editingTrainingSubject]={
+    status:$('trainingStatus').value,
+    speaker:$('trainingSpeaker').value.trim(),
+    date:$('trainingDate').value||'',
+    period:$('trainingPeriod').value.trim(),
+    note:$('trainingNote').value.trim(),
+    prep:editingTrainingPrep
+  };
+  closeTrainingModal();
+  renderTrainingTracker();
+  render();
+  renderLectureOverview();
+  await save();
+}
+
+/* ====== 國九三類講座總覽／訊息產生器 ====== */
+function weekdayLabel(dateStr){
+  const d=new Date(dateStr+'T00:00:00');
+  return ['日','一','二','三','四','五','六'][d.getDay()];
+}
+function gatherLectureOverview(){
+  const items=[];
+  tasks.forEach(t=>{
+    if(!t.date)return;
+    if((t.category||'').includes('會考分析')||(t.title||'').includes('會考分析')){
+      items.push({date:t.date,time:t.time||'',type:'會考分析講座',subject:t.subject||'',speaker:t.speaker||'',status:t.inviteStatus||'',location:t.location||'',source:'task',ref:t.id});
+    }
+  });
+  ensureBoostTracker();
+  BOOST_SUBJECTS.forEach(s=>{
+    const d=boostTracker[s];
+    if(d.date){
+      items.push({date:d.date,time:d.period||'',type:'精進班講座',subject:s,speaker:d.speaker||'',status:d.status,source:'boost',ref:s});
+    }
+  });
+  ensureTrainingTracker();
+  TRAINING_SUBJECTS.forEach(s=>{
+    const d=trainingTracker[s];
+    if(d.date){
+      items.push({date:d.date,time:d.period||'',type:'教師增能研習',subject:s,speaker:d.speaker||'',status:d.status,source:'training',ref:s});
+    }
+  });
+  items.sort((a,b)=>a.date.localeCompare(b.date)||(a.time||'').localeCompare(b.time||''));
+  return items;
+}
+function getSelectedOverviewTypes(){
+  const boxes=document.querySelectorAll('.overviewTypeFilter:checked');
+  return [...boxes].map(b=>b.value);
+}
+function getSelectedOverviewMonth(){
+  const el=$('overviewMonthFilter');
+  return el?el.value:'';
+}
+function getSelectedOverviewSubject(){
+  const el=$('overviewSubjectFilter');
+  return el?el.value:'';
+}
+const SUBJECT_GROUPS={'自然':['自然','理化','生物'],'社會':['社會','歷史','地理','公民']};
+function subjectMatchesFilter(itemSubject,selected){
+  if(!selected)return true;
+  if(SUBJECT_GROUPS[selected])return SUBJECT_GROUPS[selected].includes(itemSubject);
+  return itemSubject===selected;
+}
+function filterOverviewItems(items){
+  const types=getSelectedOverviewTypes();
+  const month=getSelectedOverviewMonth();
+  const subject=getSelectedOverviewSubject();
+  return items.filter(it=>{
+    if(types.length && !types.includes(it.type))return false;
+    if(month && !it.date.startsWith(month))return false;
+    if(subject && !subjectMatchesFilter(it.subject,subject))return false;
+    return true;
+  });
+}
+function refreshOverviewMonthOptions(){
+  const sel=$('overviewMonthFilter');
+  if(!sel)return;
+  const current=sel.value;
+  const months=[...new Set(gatherLectureOverview().map(it=>it.date.slice(0,7)))].sort();
+  sel.innerHTML='<option value="">全部</option>'+months.map(m=>{
+    const [y,mo]=m.split('-');
+    return `<option value="${m}">${y}年${Number(mo)}月</option>`;
+  }).join('');
+  if(months.includes(current))sel.value=current;
+}
+const SUBJECT_GROUP_HIDDEN=new Set();
+Object.entries(SUBJECT_GROUPS).forEach(([key,members])=>{
+  members.forEach(m=>{ if(m!==key) SUBJECT_GROUP_HIDDEN.add(m); });
+});
+function refreshOverviewSubjectOptions(){
+  const sel=$('overviewSubjectFilter');
+  if(!sel)return;
+  const current=sel.value;
+  const rawSubjects=new Set(gatherLectureOverview().map(it=>it.subject).filter(Boolean));
+  const visible=new Set();
+  rawSubjects.forEach(s=>{
+    if(SUBJECT_GROUP_HIDDEN.has(s)){
+      // 這個科目是某個群組的細項，改成顯示群組本身（例如理化→自然）
+      const groupKey=Object.keys(SUBJECT_GROUPS).find(k=>SUBJECT_GROUPS[k].includes(s));
+      if(groupKey)visible.add(groupKey);
+    }else{
+      visible.add(s);
+    }
+  });
+  const subjects=[...visible].sort();
+  sel.innerHTML='<option value="">全部</option>'+subjects.map(s=>{
+    const label=SUBJECT_GROUPS[s]?`${s}（含${SUBJECT_GROUPS[s].filter(x=>x!==s).join('／')}）`:s;
+    return `<option value="${esc(s)}">${esc(label)}</option>`;
+  }).join('');
+  if(subjects.includes(current))sel.value=current;
+}
+function renderLectureOverview(){
+  const box=$('lectureOverviewList');
+  if(!box)return;
+  refreshOverviewMonthOptions();
+  refreshOverviewSubjectOptions();
+  const items=filterOverviewItems(gatherLectureOverview());
+  if(!items.length){ box.innerHTML='<div class="small">沒有符合篩選條件、已安排日期的講座。</div>'; return; }
+  const typeClassMap={'會考分析講座':'cat-invite','精進班講座':'cat-boost','教師增能研習':'cat-training'};
+  const statusClassMap={'已確認':'done','邀約中':'doing','尚未邀約':'todo','婉拒':'blocked','暫時保留':'doing'};
+  box.innerHTML=items.map(it=>{
+    const wd=weekdayLabel(it.date);
+    const md=it.date.slice(5).replace('-','/');
+    const chipClass=statusClassMap[it.status]||'todo';
+    return `<div class="row trackerRow ${typeClassMap[it.type]||'cat-other'}" data-source="${it.source}" data-ref="${esc(String(it.ref))}" style="cursor:pointer;">
+      <div><b>${esc(md)}（${wd}）</b><div class="small">${esc(it.time||'')}</div></div>
+      <div><span class="badge">${esc(it.type)}</span></div>
+      <div><b>${esc(it.subject)}科</b><div class="small">${it.speaker?`講師｜${esc(it.speaker)}`:'（尚無講師）'}</div></div>
+      <div>${it.status?`<span class="statuschip ${chipClass}">${esc(it.status)}</span>`:''}</div>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('.row').forEach(el=>el.addEventListener('click',()=>{
+    const source=el.dataset.source, ref=el.dataset.ref;
+    if(source==='task')openEdit(Number(ref));
+    else if(source==='boost')openBoostEdit(ref);
+    else if(source==='training')openTrainingEdit(ref);
+  }));
+}
+function getRangeItems(startStr,endStr){
+  return filterOverviewItems(gatherLectureOverview()).filter(it=>(!startStr||it.date>=startStr)&&(!endStr||it.date<=endStr));
+}
+function relativeWeekPhrase(dateStr){
+  const d=new Date(dateStr+'T00:00:00');
+  const startOfWeek=base=>{const dt=new Date(base);const day=dt.getDay();dt.setDate(dt.getDate()-((day+6)%7));dt.setHours(0,0,0,0);return dt;};
+  const thisStart=startOfWeek(new Date());
+  const thatStart=startOfWeek(d);
+  const diffWeeks=Math.round((thatStart-thisStart)/(7*86400000));
+  if(diffWeeks===0)return'本週';
+  if(diffWeeks===1)return'下週';
+  if(diffWeeks===2)return'下下週';
+  return'';
+}
+function formatPeriodText(timeText){
+  if(!timeText)return'';
+  const m=timeText.match(/第\s*(\d+)\s*節/);
+  if(m)return`第 ${m[1]} 節`;
+  return timeText;
+}
+function speakerWithTitle(name){
+  if(!name)return'';
+  if(/(老師|主任|教授|博士|講師|校長|組長)$/.test(name))return name;
+  return name+'老師';
+}
+function buildMessageText(items){
+  const greetingName=($('msgGreetingName')?.value||'各位導師').trim()||'各位導師';
+  if(!items.length)return`${greetingName}好，\n\n目前這個範圍內沒有相關講座時程，先跟您說一聲。`;
+  const blocks=items.map(it=>{
+    const wd=weekdayLabel(it.date);
+    const md=it.date.slice(5).replace('-','/');
+    const dayPhrase=(relativeWeekPhrase(it.date)||'週')+wd;
+    const periodText=formatPeriodText(it.time);
+    const lines=[`${dayPhrase} ${md}${periodText?' '+periodText:''} 辦理`,`📢 ${it.type}－${it.subject}`];
+    if(it.location)lines.push(`📍 ${it.location}`);
+    if(it.speaker)lines.push(`🎤 講師：${speakerWithTitle(it.speaker)}`);
+    return lines.join('\n');
+  }).join('\n\n');
+  return `${greetingName}好，\n\n${blocks}\n\n再請導師協助帶領學生準時參加，謝謝 😊`;
+}
+function setMsgRange(startStr,endStr){
+  $('msgRangeStart').value=startStr||'';
+  $('msgRangeEnd').value=endStr||'';
+}
+function generateMessage(){
+  const start=$('msgRangeStart').value||'';
+  const end=$('msgRangeEnd').value||'';
+  const items=getRangeItems(start,end);
+  $('msgOutput').value=buildMessageText(items);
+}
+async function copyMessageText(){
+  const text=$('msgOutput').value;
+  if(!text){ showToast('目前沒有文字可以複製，請先按「產生文字」',true); return; }
+  try{
+    await navigator.clipboard.writeText(text);
+    showToast('已複製到剪貼簿',false);
+  }catch(e){
+    $('msgOutput').select();
+    showToast('自動複製失敗，文字已全選，請手動按 Ctrl+C／Cmd+C 複製',true);
+  }
+}
+function trainingAsTasks(){
+  ensureTrainingTracker();
+  return TRAINING_SUBJECTS.filter(s=>(trainingTracker[s].status==='已確認'||trainingTracker[s].status==='邀約中') && trainingTracker[s].date).map(s=>{
+    const d=trainingTracker[s];
+    const tentative=d.status==='邀約中';
+    return {
+      id:'training_'+s, isTraining:true, date:d.date, endDate:d.date,
+      time:d.period||'', category:'教師增能研習', status:prepStatus(d.prep),
+      title:`${tentative?'【邀約中】':''}教師增能研習－${s}`, subject:s, inviteStatus:d.status, speaker:d.speaker||'',
+      note:'', subtasks:d.prep||[], fixed:false, tentative
+    };
+  });
+}
+function allCalendarItems(){
+  return tasks.concat(boostAsTasks(),trainingAsTasks());
+}
+function openItem(idStr){
+  const s=String(idStr);
+  if(s.startsWith('boost_')){ openBoostEdit(s.slice(6)); return; }
+  if(s.startsWith('training_')){ openTrainingEdit(s.slice(9)); return; }
+  openEdit(Number(s));
+}
+
+function renderSubtasks(){
+  $('subtasks').innerHTML=editingSubtasks.map((s,i)=>`<div class="subtask"><input type="checkbox" data-i="${i}" ${s.done?'checked':''}><span class="grow">${esc(s.text)}</span><button data-del="${i}">×</button></div>`).join('');
+  document.querySelectorAll('#subtasks input[type=checkbox]').forEach(x=>x.addEventListener('change',async()=>{
+    const idx=Number(x.dataset.i);
+    const sub=editingSubtasks[idx];
+    sub.done=x.checked;
+    let linked=null;
+    if(editingId!==null && sub.id!==undefined){
+      linked=dailyTodos.find(dt=>dt.sourceTaskId===editingId && dt.sourceSubtaskId===sub.id);
+    }
+    // 找不到明確連結時，用文字內容比對「連結功能上線前」建立的舊每日待辦，並補上連結
+    if(!linked && editingId!==null){
+      const titleVal=$('title').value.trim()||'(未命名事項)';
+      const expectedText=`${titleVal}－${sub.text}`;
+      linked=dailyTodos.find(dt=>dt.sourceTaskId===undefined && dt.text===expectedText);
+      if(linked){ linked.sourceTaskId=editingId; linked.sourceSubtaskId=sub.id; }
+    }
+    if(linked){ linked.done=x.checked; renderDailyTodos(); await save(); }
+  }));
+  document.querySelectorAll('#subtasks button[data-del]').forEach(x=>x.addEventListener('click',async()=>{
+    const idx=Number(x.dataset.del);
+    const removed=editingSubtasks[idx];
+    editingSubtasks.splice(idx,1);
+    renderSubtasks();
+    // 刪除細項時，如果已經連結到每日待辦，一併刪除，避免留下孤兒項目
+    if(editingId!==null && removed && removed.id!==undefined){
+      const before=dailyTodos.length;
+      dailyTodos=dailyTodos.filter(dt=>!(dt.sourceTaskId===editingId && dt.sourceSubtaskId===removed.id));
+      if(dailyTodos.length<before){
+        renderDailyTodos();
+        await save();
+        showToast('已同步刪除連結的每日待辦項目',false);
+      }
+    }
+  }));
+}
+function isHolidayDate(dateStr){
+  return tasks.some(t=>{
+    if(!(t.category==='國定假日'||t.category==='假日'||(t.title||'').includes('放假')))return false;
+    return taskCoversDate(t,dateStr);
+  });
+}
+function isWorkingDay(dateStr){
+  const d=new Date(dateStr+'T00:00:00');
+  const dow=d.getDay();
+  if(dow===0||dow===6)return false; // 週末
+  return !isHolidayDate(dateStr);
+}
+function stepBackWorkingDays(anchorDate,n){
+  // 從 anchorDate 往前數 n 個「工作日」（跳過週末與國定假日），回傳該工作日的 Date
+  const d=new Date(anchorDate);
+  let count=0;
+  while(count<n){
+    d.setDate(d.getDate()-1);
+    if(isWorkingDay(localISO(d)))count++;
+  }
+  return d;
+}
+function nextWorkingDayOnOrAfter(dateStr){
+  let d=new Date(dateStr+'T00:00:00');
+  while(!isWorkingDay(localISO(d))){
+    d.setDate(d.getDate()+1);
+  }
+  return localISO(d);
+}
+function stepForwardWorkingDays(anchorDate,n){
+  // 從 anchorDate 往後數 n 個「工作日」（跳過週末與國定假日），回傳該工作日的 Date
+  const d=new Date(anchorDate);
+  let count=0;
+  while(count<n){
+    d.setDate(d.getDate()+1);
+    if(isWorkingDay(localISO(d)))count++;
+  }
+  return d;
+}
+function dateOfWeekdayInWeek(anchorDate,weekdayTarget){
+  // 回傳 anchorDate 所在那一週（週日為一週開始）指定星期幾的 Date，例如 weekdayTarget=1 代表那一週的星期一
+  const dow=anchorDate.getDay();
+  const d=new Date(anchorDate);
+  d.setDate(d.getDate()+(weekdayTarget-dow));
+  return d;
+}
+function isPostEventSubtask(text){
+  // 判斷這個細項是不是「活動結束後」才要做的事，不應該排在活動日之前
+  if(/^(會後|賽後|課後|事後|活動後)/.test(text))return true;
+  if(text.includes('後續'))return true;
+  if(text==='追蹤會議決議事項'||text==='追蹤決議事項')return true;
+  if(text.includes('鐘點費')||text.includes('核銷')||text.includes('結算')||text.includes('結報'))return true;
+  return false;
+}
+function getTimingMapFor(title,category){
+  if(title.includes('核心會議'))return coreTemplateTiming;
+  if(category==='會議'||title.includes('會議'))return meetingTemplateTiming;
+  return null;
+}
+function computeIdealDates(subtaskList,realDeadline,internalDeadline,timingMap){
+  // 回傳每個 subtask 對應的「理想日期」（Date 物件，可能是 null）
+  // fixed=true 代表這個時間點是明確規則算出來的，直接採用，不與其他項目互相避開撞期
+  const withRule=[],preTasks=[],postTasks=[];
+  subtaskList.forEach(s=>{
+    const rule=timingMap&&timingMap[s.text];
+    if(rule) withRule.push(s);
+    else if(isPostEventSubtask(s.text)) postTasks.push(s);
+    else preTasks.push(s);
+  });
+  const results=[];
+  withRule.forEach(s=>{
+    const rule=timingMap[s.text];
+    let d=null;
+    if(rule.daysBefore!==undefined) d=stepBackWorkingDays(realDeadline,rule.daysBefore);
+    else if(rule.daysAfter!==undefined) d=stepForwardWorkingDays(realDeadline,rule.daysAfter);
+    else if(rule.weekdayOfEventWeek!==undefined) d=new Date(nextWorkingDayOnOrAfter(localISO(dateOfWeekdayInWeek(realDeadline,rule.weekdayOfEventWeek)))+'T00:00:00');
+    results.push({s,idealDate:d,fixed:true});
+  });
+  const n=preTasks.length;
+  preTasks.forEach((s,i)=>{
+    const daysBefore=n-i; // 第一項推最遠，最後一項排在內部截止日前一個工作日
+    results.push({s,idealDate:stepBackWorkingDays(internalDeadline,daysBefore),fixed:false});
+  });
+  postTasks.forEach((s,i)=>{
+    results.push({s,idealDate:stepForwardWorkingDays(realDeadline,i+1),fixed:false}); // 活動當天之後的第 i+1 個工作日
+  });
+  return results;
+}
+function assignNoOverlapDates(items,todayStr){
+  // 有明確規則（fixed）的項目：直接採用算出來的日期，不跟其他項目互相避開撞期
+  // 只有沒有規則、用均分邏輯算出來的項目，才需要互相避開撞期（避免全部擠在同一天）
+  const fixedResults=items.filter(it=>it.fixed).map(it=>{
+    let candidate=it.idealDate?localISO(it.idealDate):todayStr;
+    if(candidate<todayStr)candidate=todayStr;
+    if(!isWorkingDay(candidate))candidate=nextWorkingDayOnOrAfter(candidate);
+    return {...it,finalDate:candidate};
+  });
+  const flexSorted=items.filter(it=>!it.fixed)
+    .map(it=>({...it,idealStr:it.idealDate?localISO(it.idealDate):null}))
+    .sort((a,b)=>(a.idealStr||'9999-99-99').localeCompare(b.idealStr||'9999-99-99'));
+  let cursor=null;
+  const flexResults=flexSorted.map(it=>{
+    let candidate=(it.idealStr&&it.idealStr>=todayStr)?it.idealStr:todayStr;
+    if(!isWorkingDay(candidate)) candidate=nextWorkingDayOnOrAfter(candidate);
+    if(cursor&&candidate<=cursor){
+      let d=new Date(cursor+'T00:00:00');
+      do{ d.setDate(d.getDate()+1); }while(!isWorkingDay(localISO(d)));
+      candidate=localISO(d);
+    }
+    cursor=candidate;
+    return {...it,finalDate:candidate};
+  });
+  return [...fixedResults,...flexResults];
+}
+async function autoScheduleSubtasks(){
+  const eventDate=$('date').value;
+  if(!eventDate){ showToast('請先填寫日期，才能往前推算前置待辦的時間。',true); return; }
+  if(editingId===null){ showToast('請先按「儲存」把這筆行程存起來，再重新打開它，才能建立會同步的每日待辦。',true); return; }
+  const title=$('title').value.trim()||'(未命名事項)';
+  const alreadyLinkedIds=new Set(dailyTodos.filter(dt=>dt.sourceTaskId===editingId).map(dt=>dt.sourceSubtaskId));
+  const pendingAll=editingSubtasks.filter(s=>!s.done);
+  if(!pendingAll.length){ showToast('目前沒有未完成的細項待辦可以安排，請先在上面加入細項待辦。',true); return; }
+  const pendingNew=pendingAll.filter(s=>!alreadyLinkedIds.has(s.id));
+  if(!pendingNew.length){ showToast('未完成的細項待辦都已經連結到每日待辦了，沒有新項目需要新增。可以按「🔁 重新計算時間」讓已連結的項目套用最新排程規則。',false); return; }
+  const bufferDays=Math.max(0,Number($('scheduleBufferDays').value)||0);
+  const realDeadline=new Date(eventDate+'T00:00:00');
+  const internalDeadline=new Date(realDeadline);
+  internalDeadline.setDate(internalDeadline.getDate()-bufferDays);
+  const todayStr=localISO(new Date());
+  const timingMap=getTimingMapFor(title,$('category').value);
+
+  pendingNew.forEach((s,i)=>{ if(s.id===undefined) s.id=`new_${Date.now()}_${i}`; });
+  const withIdeal=computeIdealDates(pendingNew,realDeadline,internalDeadline,timingMap);
+  const placed=assignNoOverlapDates(withIdeal,todayStr);
+
+  let addedCount=0;
+  placed.forEach((it,i)=>{
+    dailyTodos.push({id:Date.now()+i, date:it.finalDate, text:`${title}－${it.s.text}`, done:false, important:false, urgent:false, sourceTaskId:editingId, sourceSubtaskId:it.s.id});
+    addedCount++;
+  });
+
+  renderSubtasks();
+  renderDailyTodos();
+  await save();
+  const bufferNote=bufferDays>0?`（未特別設定時間點的項目已預留 ${bufferDays} 天緩衝）`:'';
+  showToast(`已新增 ${addedCount} 項每日待辦並與這筆行程連結${bufferNote}，之後打勾其中一邊都會自動同步。`,false);
+}
+async function rescheduleLinkedSubtasks(){
+  const eventDate=$('date').value;
+  if(!eventDate){ showToast('請先填寫日期，才能往前推算前置待辦的時間。',true); return; }
+  if(editingId===null){ showToast('請先儲存這筆行程，才能重新計算已連結的每日待辦。',true); return; }
+  const title=$('title').value.trim()||'(未命名事項)';
+  const linkedItems=editingSubtasks.filter(s=>!s.done && s.id!==undefined && dailyTodos.some(dt=>dt.sourceTaskId===editingId && dt.sourceSubtaskId===s.id));
+  if(!linkedItems.length){ showToast('目前沒有已連結、且未完成的細項可以重新計算。',true); return; }
+  const bufferDays=Math.max(0,Number($('scheduleBufferDays').value)||0);
+  const realDeadline=new Date(eventDate+'T00:00:00');
+  const internalDeadline=new Date(realDeadline);
+  internalDeadline.setDate(internalDeadline.getDate()-bufferDays);
+  const todayStr=localISO(new Date());
+  const timingMap=getTimingMapFor(title,$('category').value);
+
+  const withIdeal=computeIdealDates(linkedItems,realDeadline,internalDeadline,timingMap);
+  const placed=assignNoOverlapDates(withIdeal,todayStr);
+
+  let updatedCount=0;
+  placed.forEach(it=>{
+    const dt=dailyTodos.find(x=>x.sourceTaskId===editingId && x.sourceSubtaskId===it.s.id);
+    if(dt){ dt.date=it.finalDate; updatedCount++; }
+  });
+  renderDailyTodos();
+  await save();
+  showToast(`已重新計算 ${updatedCount} 項已連結的每日待辦時間，套用最新排程規則（不會再擠在同一天）。`,false);
+}
+function syncFields(){
+  const fake={category:$('category').value,title:$('title').value};
+  $('statusField').style.display=isNoProgress(fake)?'none':'';
+  const lecture=(fake.category.includes('講座')||fake.title.includes('講座'));
+  $('inviteFields').style.display=lecture?'block':'none';
+  // 國中核心會議：地點、時間欄位空著時自動帶入常用預設值
+  if(fake.title.includes('核心會議')){
+    if(!$('time').value.trim()) $('time').value='8:10';
+    if(!$('location').value.trim()) $('location').value='第一會議室';
+  }
+}
+function updateWorkdaysOnlyVisibility(){
+  const isRange=$('endDate').value && $('endDate').value!==$('date').value;
+  $('workdaysOnlyField').style.display=isRange?'block':'none';
+}
+function openNew(date){
+  editingId=null; editingSubtasks=[];
+  $('modalTitle').textContent='新增事項'; $('taskId').value=''; $('date').value=date||iso(ym.y,ym.m,1); $('endDate').value=''; $('time').value=''; $('location').value=''; $('category').value=''; $('status').value='todo'; $('title').value=''; $('subject').value=''; $('inviteStatus').value='尚未邀約'; $('speaker').value=''; $('note').value=''; $('workdaysOnly').checked=false; $('deleteBtn').style.visibility='hidden'; $('duplicateBtn').style.visibility='hidden'; $('deleteFeedback').style.display='none'; renderSubtasks(); syncFields(); updateWorkdaysOnlyVisibility(); $('modalBack').classList.add('open');
+}
+function openEdit(id){
+  const t=tasks.find(x=>Number(x.id)===Number(id)); if(!t)return;
+  editingId=Number(id);
+  editingSubtasks=JSON.parse(JSON.stringify(t.subtasks||[])).map((s,i)=>s.id!==undefined?s:{...s,id:`${t.id}_${i}`});
+  $('modalTitle').textContent='編輯事項'; $('taskId').value=id; $('date').value=t.date||''; $('endDate').value=t.endDate||''; $('time').value=t.time||''; $('location').value=t.location||''; $('category').value=t.category||''; $('status').value=t.status||'todo'; $('title').value=t.title||''; $('subject').value=t.subject||''; $('inviteStatus').value=t.inviteStatus||'尚未邀約'; $('speaker').value=t.speaker||''; $('note').value=t.note||''; $('workdaysOnly').checked=!!t.workdaysOnly; $('deleteBtn').style.visibility='visible'; $('duplicateBtn').style.visibility='visible'; $('deleteFeedback').style.display='none'; renderSubtasks(); syncFields(); updateWorkdaysOnlyVisibility(); $('modalBack').classList.add('open');
+}
+function duplicateCurrent(){
+  // 保留目前視窗裡所有欄位內容，但視為「新增」，儲存時會建立一筆全新的行程
+  editingId=null;
+  // 細項待辦的 id 重新產生，避免複製出來的行程誤連結到原本那一筆的每日待辦
+  editingSubtasks=editingSubtasks.map((s,i)=>({...s,id:`dup_${Date.now()}_${i}`}));
+  $('modalTitle').textContent='複製建立新事項（請確認日期後儲存）';
+  $('taskId').value='';
+  $('deleteBtn').style.visibility='hidden';
+  $('deleteFeedback').style.display='none';
+}
+function closeModal(){$('modalBack').classList.remove('open')}
+async function saveCurrent(){
+  const title=$('title').value.trim(), date=$('date').value;
+  if(!title||!date){showToast('請填寫日期與事項名稱',true);return}
+  const old=editingId===null?null:tasks.find(t=>Number(t.id)===editingId);
+  const t={
+    id:editingId===null?Date.now():editingId,date,endDate:$('endDate').value||'',time:$('time').value.trim(),location:$('location').value.trim(),category:$('category').value.trim()||'其他',
+    status:isNoProgress({category:$('category').value,title})?'todo':$('status').value,title,
+    subject:$('subject').value.trim(),inviteStatus:$('inviteStatus').value,speaker:$('speaker').value.trim(),
+    note:$('note').value.trim(),subtasks:editingSubtasks,fixed:old?!!old.fixed:false,
+    workdaysOnly:($('endDate').value && $('endDate').value!==date)?$('workdaysOnly').checked:false
+  };
+  if(old){const i=tasks.findIndex(x=>Number(x.id)===editingId);tasks[i]=t}else tasks.push(t);
+  closeModal();render();
+  renderLectureOverview();
+  await save();
+}
+async function deleteCurrentDirect(){
+  const feedback=$('deleteFeedback');
+  try{
+    if(editingId===null){
+      if(feedback){feedback.style.display='block';feedback.textContent='目前沒有可刪除的行程。';}
+      return;
+    }
+    const i=tasks.findIndex(t=>Number(t.id)===Number(editingId));
+    if(i<0){
+      if(feedback){feedback.style.display='block';feedback.textContent='找不到這筆行程，請重新開啟後再試。';}
+      return;
+    }
+    const t=tasks[i];
+
+    // 固定匯入行程也要永久記錄刪除，避免重新整理後復活
+    await addTombstone(t);
+    tasks.splice(i,1);
+
+    editingId=null;
+    closeModal();
+    render();
+    renderLectureOverview();
+    await save();
+
+    // 頁面上直接顯示成功訊息，不依賴 alert/confirm
+    const bar=document.createElement('div');
+    bar.textContent='已刪除：'+(t.title||'這筆行程');
+    bar.style.cssText='position:fixed;right:18px;bottom:18px;z-index:2000;background:#243d5a;color:#fff;padding:12px 16px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);font-weight:700;';
+    document.body.appendChild(bar);
+    setTimeout(()=>bar.remove(),2200);
+  }catch(err){
+    if(feedback){feedback.style.display='block';feedback.textContent='刪除失敗：'+err.message;}
+  }
+}
+// 保留舊名稱，避免其他程式仍呼叫它
+function deleteCurrent(){ deleteCurrentDirect(); }
+function refreshOptions(){
+  const defaults=['核心會議','導師會議','全校會議','會議','截止','考試','國九會考分析講座','國九精進班講座','精進班講座','教師增能研習','競賽','研習','學習扶助','公開授課','課程計畫','學生活動','校務活動','國定假日','提醒','行政'];
+  const cats=allCalendarItems().map(t=>t.category).filter(Boolean);
+  const vals=[...new Set([...defaults,...cats])];
+  $('categoryOptions').innerHTML=vals.map(v=>`<option value="${esc(v)}"></option>`).join('');
+  $('filterOptions').innerHTML=vals.map(v=>`<option value="${esc(v)}"></option>`).join('');
+}
+function match(t,q){
+  q=(q||'').trim(); if(!q)return false;
+  return (t.title||'').includes(q)||(t.category||'').includes(q)||(t.note||'').includes(q)||(t.subject||'').includes(q)||(t.location||'').includes(q);
+}
+function renderFilterResults(arr,label){
+  $('filterResults').innerHTML=arr.length?arr.map(t=>`<div class="result ${catClass(t)} ${t.tentative?'tentative':''}"><b>${t.date}｜${esc(t.title)}</b><div class="small">${esc(t.time||'')} ${esc(t.category||'')}${t.speaker?`<br>講師｜${esc(t.speaker)}`:''}${t.location?`<br>📍${esc(t.location)}`:''}</div><button onclick="openItem('${t.id}')">開啟行程</button></div>`).join(''):`<div class="small">目前沒有符合「${esc(label)}」的行程。</div>`;
+}
+function clearLegendActive(){
+  document.querySelectorAll('.legend span[data-filter],.legend span[data-status]').forEach(el=>el.classList.remove('active'));
+}
+function showFilter(){
+  const q=$('filterText').value.trim();
+  if(!q){ $('filterResults').innerHTML=''; return; }
+  const arr=allCalendarItems().filter(t=>match(t,q)).sort((a,b)=>a.date.localeCompare(b.date));
+  renderFilterResults(arr,q);
+}
+function filterByCategory(text,chip){
+  clearLegendActive();
+  if(chip)chip.classList.add('active');
+  $('filterText').value=text;
+  showFilter();
+  $('filterResults').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function filterByStatus(status,chip){
+  clearLegendActive();
+  if(chip)chip.classList.add('active');
+  $('filterText').value='';
+  const arr=allCalendarItems().filter(t=>!isNoProgress(t)&&(t.status||'todo')===status).sort((a,b)=>a.date.localeCompare(b.date));
+  const labelMap={todo:'未完成',doing:'處理中',done:'已完成',blocked:'不可安排',fyi:'僅提醒'};
+  renderFilterResults(arr,labelMap[status]||status);
+  $('filterResults').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function semesterFridays(){
+  const out=[], start=new Date(2026,8,1,12), end=new Date(2027,0,20,12);
+  for(let d=new Date(start);d<=end;d.setDate(d.getDate()+1)){
+    if(d.getDay()===5)out.push(localISO(d));
+  }
+  return out;
+}
+function weekRange(date){
+  const [y,m,d]=date.split('-').map(Number), dt=new Date(y,m-1,d,12);
+  const mon=new Date(dt);mon.setDate(dt.getDate()-((dt.getDay()+6)%7));
+  const sun=new Date(mon);sun.setDate(mon.getDate()+6);
+  return [localISO(mon),localISO(sun)];
+}
+
+function grade9LectureBlockReason(t){
+  const title=(t.title||'').trim();
+  const category=(t.category||'').trim();
+
+  // 國九學生不在校：精進班講座直接不可安排
+  if(/國九.*教育旅行|國九.*校外教學|九年級.*教育旅行|九年級.*校外教學/.test(title)){
+    return '國九學生不在校';
+  }
+
+  // 考試、放假、已標記不可安排，也屬硬性不可安排
+  if(isNoProgress(t) && (category==='考試' || /段考|模擬考/.test(title))) return '考試期間';
+  if(category==='國定假日' || category==='假日' || title.includes('放假')) return '放假';
+  if(t.status==='blocked') return '既定行程已標記不可安排';
+
+  return '';
+}
+
+function fridayHasLecture(date){
+  const all=allCalendarItems();
+  return all.some(t=>visibleOnDate(t,date) && catClass(t)==='cat-boost');
+}
+function fridayCard(date){
+  const all=allCalendarItems();
+  const same=all.filter(t=>visibleOnDate(t,date)); // 用 visibleOnDate，長期背景追蹤事項不會被誤判成「當天已有事情」
+  const [a,b]=weekRange(date);
+  const week=all.filter(t=>{
+    if(isBackgroundTracking(t)) return t.date>=a && t.date<=b; // 長期追蹤事項只在起始那一週計入
+    return (t.date||'')<=b&&(t.endDate||t.date||'')>=a;
+  });
+
+  const hasLecture=same.some(t=>catClass(t)==='cat-boost');
+  const hardReasons=[...new Set(same.map(grade9LectureBlockReason).filter(Boolean))];
+
+  let label='🟢 適合邀約',cls='cat-invite';
+  let reason='';
+
+  if(hasLecture){
+    label='🎤 已安排講座';
+    cls='cat-boost';
+  }else if(hardReasons.length){
+    label='⛔ 不可安排';
+    cls='cat-exam';
+    reason=hardReasons.join('、');
+  }else if(same.length){
+    label='🔴 不建議';
+    cls='cat-exam';
+    reason='當天已有其他既定行程';
+  }else if(week.length>=4){
+    label='🟡 可以，但當週較忙';
+    cls='cat-deadline';
+    reason='當週既定行程較多';
+  }
+
+  const names=[...new Set(same.map(t=>t.title))];
+  const canCreate=!hasLecture && !hardReasons.length;
+
+  return `<div class="result ${cls} fridayCardBox">
+    <div>
+      <b>${date}｜${label}</b>
+      <div class="small">
+        當天 ${same.length} 項｜當週 ${week.length} 項
+        ${reason?`<br><b>原因：</b>${esc(reason)}`:''}
+        ${names.length?`<br>當天：${names.map(esc).join('、')}`:''}
+      </div>
+    </div>
+    ${canCreate?`<button onclick="createBoost('${date}')">建立講座</button>`:'<button disabled style="opacity:.55;cursor:not-allowed;">不可建立講座</button>'}
+  </div>`;
+}
+function renderFridayGroups(allOpen=false){
+  const groups={};
+  const todayStr=localISO(new Date());
+  semesterFridays().filter(date=>date>=todayStr||fridayHasLecture(date)).forEach(date=>{const k=date.slice(0,7);(groups[k]||(groups[k]=[])).push(date)});
+  const current=`${ym.y}-${String(ym.m+1).padStart(2,'0')}`;
+  $('fridayResults').innerHTML=`<div class="fridayMonthsCol">${Object.entries(groups).map(([k,dates])=>{
+    const collapsed=!allOpen&&k!==current,[y,m]=k.split('-');
+    return `<div class="friday-month ${collapsed?'collapsed':''}">
+      <button type="button" class="friday-month-head"><span>${y} 年 ${Number(m)} 月</span><span class="small">${collapsed?'▶':'▼'} ${dates.length} 個週五</span></button>
+      <div class="friday-month-body">${dates.map(fridayCard).join('')}</div>
+    </div>`;
+  }).join('')}</div>`;
+  document.querySelectorAll('.friday-month-head').forEach(btn=>btn.addEventListener('click',()=>{
+    const box=btn.closest('.friday-month');box.classList.toggle('collapsed');
+    const n=box.querySelectorAll('.result').length;
+    btn.lastElementChild.textContent=`${box.classList.contains('collapsed')?'▶':'▼'} ${n} 個週五`;
+  }));
+}
+function showFridays(){renderFridayGroups(false)}
+function createBoost(date){
+  openNew(date);$('category').value='國九精進班講座';$('title').value='國九精進班講座';$('time').value='第6–7節';syncFields();
+}
+
+$('prev').addEventListener('click',()=>{ym.m--;if(ym.m<0){ym.m=11;ym.y--}render()});
+$('next').addEventListener('click',()=>{ym.m++;if(ym.m>11){ym.m=0;ym.y++}render()});
+$('newTask').addEventListener('click',()=>openNew());
+$('xClose').addEventListener('click',closeModal);$('cancelBtn').addEventListener('click',closeModal);
+$('endDate').addEventListener('input',updateWorkdaysOnlyVisibility);
+$('date').addEventListener('input',updateWorkdaysOnlyVisibility);
+$('saveBtn').addEventListener('click',saveCurrent);
+$('duplicateBtn').addEventListener('click',duplicateCurrent);
+
+$('category').addEventListener('input',syncFields);$('title').addEventListener('input',syncFields);
+$('addSubtask').addEventListener('click',async()=>{
+  const v=$('newSubtaskText').value.trim();
+  if(!v)return;
+  editingSubtasks.push({id:`new_${Date.now()}`,text:v,done:false});
+  $('newSubtaskText').value='';
+  renderSubtasks();
+  // 若這筆事項屬於有範本的類型，把新細項補進範本庫，之後新建立的同類型事項也會包含它（已建立過的不受影響）
+  const key=getTemplateKey({category:$('category').value,title:$('title').value});
+  if(key){
+    const base=TEMPLATE_BASE[key]||[];
+    if(!base.includes(v) && !(templateAdditions[key]||[]).includes(v)){
+      templateAdditions[key]=[...(templateAdditions[key]||[]),v];
+      await save();
+      showToast(`已將「${v}」加入${TEMPLATE_LABEL[key]}範本，之後新建立的同類型事項套用範本時會包含這項`,false);
+    }
+  }
+});
+$('addTemplate').addEventListener('click',()=>{const t={category:$('category').value,title:$('title').value};const exists=new Set(editingSubtasks.map(s=>s.text));let i=0;templateFor(t).forEach(x=>{if(!exists.has(x)){editingSubtasks.push({id:`tpl_${Date.now()}_${i}`,text:x,done:false});i++;}});renderSubtasks()});
+$('autoScheduleBtn').addEventListener('click',autoScheduleSubtasks);
+$('rescheduleBtn').addEventListener('click',rescheduleLinkedSubtasks);
+$('showDates').addEventListener('click',showFilter);$('filterText').addEventListener('input',()=>{clearLegendActive();showFilter();});$('clearFilter').addEventListener('click',()=>{$('filterText').value='';$('filterResults').innerHTML='';clearLegendActive();});
+document.querySelectorAll('.legend span[data-filter]').forEach(el=>el.addEventListener('click',()=>filterByCategory(el.dataset.filter,el)));
+document.querySelectorAll('.legend span[data-status]').forEach(el=>el.addEventListener('click',()=>filterByStatus(el.dataset.status,el)));
+$('showFridays').addEventListener('click',showFridays);$('showAllFridays').addEventListener('click',()=>renderFridayGroups(true));
+$('modalBack').addEventListener('click',e=>{if(e.target===$('modalBack'))closeModal()});
+$('refreshCloud').addEventListener('click',async()=>{
+  $('refreshCloud').disabled=true;
+  const merged=await loadFromCloud();
+  tasks=removeMoreUnneededItems(reviseLearningSupportSeptember(removeUnneededHandoverItems(migrateLearningSupportSchedule(migrateMultiDay(merged)))));
+  render();
+  renderDailyTodos();
+  renderCollections();
+  renderBoostTracker();
+  renderTrainingTracker();
+  renderLectureOverview();
+  setSyncStatus('☁ 已同步',false);
+  $('refreshCloud').disabled=false;
+});
+
+$('addTodoBtn').addEventListener('click',addDailyTodo);
+$('newTodoText').addEventListener('keydown',e=>{if(e.key==='Enter')addDailyTodo();});
+$('todoToday').addEventListener('click',()=>{
+  const d=localISO(new Date());
+  $('newTodoDate').value=d;
+  todoViewDate=d; todoShowAll=false;
+  $('todoToggleView').textContent='顯示全部日期';
+  renderDailyTodos();
+});
+$('todoTomorrow').addEventListener('click',()=>{
+  const d=localISO(new Date(Date.now()+86400000));
+  $('newTodoDate').value=d;
+  todoViewDate=d; todoShowAll=false;
+  $('todoToggleView').textContent='顯示全部日期';
+  renderDailyTodos();
+});
+$('newTodoDate').value=localISO(new Date());
+$('newTodoDate').addEventListener('change',()=>{
+  const d=$('newTodoDate').value;
+  if(!d)return;
+  todoViewDate=d; todoShowAll=false;
+  $('todoToggleView').textContent='顯示全部日期';
+  renderDailyTodos();
+});
+$('todoToggleView').addEventListener('click',()=>{
+  todoShowAll=!todoShowAll;
+  $('todoToggleView').textContent=todoShowAll?'只看單一天':'顯示全部日期';
+  renderDailyTodos();
+});
+$('dedupeTodoBtn').addEventListener('click',removeDuplicateTodos);
+
+$('manageClassesBtn').addEventListener('click',openClassSettings);
+$('classXClose').addEventListener('click',closeClassModal);
+$('classCancelBtn').addEventListener('click',closeClassModal);
+$('classSaveBtn').addEventListener('click',saveClassList);
+$('classModalBack').addEventListener('click',e=>{if(e.target===$('classModalBack'))closeClassModal();});
+
+$('newCollectionBtn').addEventListener('click',openCollNew);
+$('collXClose').addEventListener('click',closeCollModal);
+$('collCancelBtn').addEventListener('click',closeCollModal);
+$('collDuplicateBtn').addEventListener('click',duplicateCollCurrent);
+$('collSaveBtn').addEventListener('click',saveCollCurrent);
+$('collDeleteBtn').addEventListener('click',deleteCollCurrent);
+$('collModalBack').addEventListener('click',e=>{if(e.target===$('collModalBack'))closeCollModal();});
+$('collModeClass').addEventListener('change',updateCollModeUI);
+$('collModeStudent').addEventListener('change',updateCollModeUI);
+$('collModeDomain').addEventListener('change',updateCollModeUI);
+$('addCollStudentBtn').addEventListener('click',addCollStudents);
+$('newCollStudentText').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addCollStudents();}});
+
+$('boostXClose').addEventListener('click',closeBoostModal);
+$('boostCancelBtn').addEventListener('click',closeBoostModal);
+$('boostSaveBtn').addEventListener('click',saveBoostCurrent);
+$('boostModalBack').addEventListener('click',e=>{if(e.target===$('boostModalBack'))closeBoostModal();});
+$('addBoostPrep').addEventListener('click',()=>{
+  const v=$('newBoostPrepText').value.trim();
+  if(v){editingBoostPrep.push({text:v,done:false}); $('newBoostPrepText').value=''; renderBoostPrepList();}
+});
+
+$('trainingXClose').addEventListener('click',closeTrainingModal);
+$('trainingCancelBtn').addEventListener('click',closeTrainingModal);
+$('trainingSaveBtn').addEventListener('click',saveTrainingCurrent);
+$('trainingModalBack').addEventListener('click',e=>{if(e.target===$('trainingModalBack'))closeTrainingModal();});
+$('addTrainingPrep').addEventListener('click',()=>{
+  const v=$('newTrainingPrepText').value.trim();
+  if(v){editingTrainingPrep.push({text:v,done:false}); $('newTrainingPrepText').value=''; renderTrainingPrepList();}
+});
+
+$('calendarTitle').addEventListener('blur',saveCalendarTitle);
+$('calendarTitle').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){ e.preventDefault(); $('calendarTitle').blur(); }
+});
+
+$('toggleDailyTodoPanel').addEventListener('click',()=>togglePanel('dailyTodo'));
+$('toggleCollectionsPanel').addEventListener('click',()=>togglePanel('collections'));
+$('toggleBoostPanel').addEventListener('click',()=>togglePanel('boost'));
+$('toggleTrainingPanel').addEventListener('click',()=>togglePanel('training'));
+$('toggleLectureOverviewPanel').addEventListener('click',()=>togglePanel('lectureOverview'));
+$('overviewMonthFilter').addEventListener('change',renderLectureOverview);
+$('overviewSubjectFilter').addEventListener('change',renderLectureOverview);
+document.querySelectorAll('.overviewTypeFilter').forEach(cb=>cb.addEventListener('change',renderLectureOverview));
+$('toggleMonthListPanel').addEventListener('click',()=>togglePanel('monthList'));
+
+$('msgRangeWeek').addEventListener('click',()=>{
+  const today=localISO(new Date());
+  const end=localISO(new Date(Date.now()+7*86400000));
+  setMsgRange(today,end); generateMessage();
+});
+$('msgRange2Week').addEventListener('click',()=>{
+  const today=localISO(new Date());
+  const end=localISO(new Date(Date.now()+14*86400000));
+  setMsgRange(today,end); generateMessage();
+});
+$('msgRangeMonth').addEventListener('click',()=>{
+  const first=iso(ym.y,ym.m,1);
+  const lastDay=new Date(ym.y,ym.m+1,0).getDate();
+  const last=iso(ym.y,ym.m,lastDay);
+  setMsgRange(first,last); generateMessage();
+});
+$('msgRangeAll').addEventListener('click',()=>{ setMsgRange('',''); generateMessage(); });
+$('genMessageBtn').addEventListener('click',generateMessage);
+$('copyMessageBtn').addEventListener('click',copyMessageText);
+
+initApp();
+</script>
+</body></html>
